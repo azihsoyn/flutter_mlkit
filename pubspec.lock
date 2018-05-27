@@ -40,4 +40,5 @@ packages:
     source: hosted
     version: "2.0.6"
 sdks:
-  dart: ">=1.21.0 <=2.0.0-edge.c080951d45e79cd25df98036c4be835b284a269c"
+  dart: ">=1.23.0 <=2.0.0-edge.c080951d45e79cd25df98036c4be835b284a269c"
+  flutter: ">=0.1.4 <2.0.0"
