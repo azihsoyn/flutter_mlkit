@@ -2,6 +2,7 @@ name: mlkit_example
 description: Demonstrates how to use the mlkit plugin.
 
 dependencies:
+  image_picker: ^0.4.1
   flutter:
     sdk: flutter
 

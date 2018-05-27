@@ -9,6 +9,7 @@ buildscript {
 
     dependencies {
         classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.google.gms:google-services:3.2.0'
     }
 }
 
@@ -31,4 +32,9 @@ android {
     lintOptions {
         disable 'InvalidPackage'
     }
+    dependencies {
+        api 'com.google.firebase:firebase-core:15.+'
+        api 'com.google.firebase:firebase-ml-vision:15.+'
+    }
+    apply plugin: 'com.google.gms.google-services'
 }

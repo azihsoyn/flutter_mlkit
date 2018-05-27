@@ -1,5 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mlkit/mlkit.dart';
 
 void main() => runApp(new MyApp());
@@ -10,33 +12,14 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
+  File _file = File("");
+  List<String> _currentLabels = List<String>(0);
+
+  FirebaseVisionTextDetector detector = FirebaseVisionTextDetector.instance;
 
   @override
   initState() {
     super.initState();
-    initPlatformState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
-  initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      platformVersion = await Mlkit.platformVersion;
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted)
-      return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
   }
 
   @override
@@ -46,9 +29,69 @@ class _MyAppState extends State<MyApp> {
         appBar: new AppBar(
           title: new Text('Plugin example app'),
         ),
-        body: new Center(
-          child: new Text('Running on: $_platformVersion\n'),
+        body: _buildSuggestions(),
+        //children: <Widget>[
+        /*
+              Image.file(_file),
+              ListView.builder(
+                  padding: const EdgeInsets.all(20.0),
+                  itemBuilder: (context, i) {
+                    return new ListTile(
+                      title: new Text(_currentLabels[i]),
+                    );
+                  })
+                  */
+        //]),
+        floatingActionButton: new FloatingActionButton(
+          onPressed: () async {
+            //var file = await ImagePicker.pickImage(source: ImageSource.camera);
+            var file = await ImagePicker.pickImage(source: ImageSource.gallery);
+            setState(() {
+              _file = file;
+            });
+            var currentLabels = await detector.detectFromPath(_file?.path);
+            setState(() {
+              _currentLabels = currentLabels;
+            });
+          },
+          child: new Icon(Icons.camera),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestions() {
+    return new ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        // The itemBuilder callback is called once per suggested word pairing,
+        // and places each suggestion into a ListTile row.
+        // For even rows, the function adds a ListTile row for the word pairing.
+        // For odd rows, the function adds a Divider widget to visually
+        // separate the entries. Note that the divider may be difficult
+        // to see on smaller devices.
+        itemBuilder: (context, i) {
+          // Add a one-pixel-high divider widget before each row in theListView.
+          if (i.isOdd) return new Divider();
+
+          // The syntax "i ~/ 2" divides i by 2 and returns an integer result.
+          // For example: 1, 2, 3, 4, 5 becomes 0, 1, 1, 2, 2.
+          // This calculates the actual number of word pairings in the ListView,
+          // minus the divider widgets.
+          final index = i ~/ 2;
+          // If you've reached the end of the available word pairings...
+          if (index >= _currentLabels.length) {
+            // ...then generate 10 more and add them to the suggestions list.
+            _currentLabels.addAll(_currentLabels);
+          }
+          return _buildRow(_currentLabels[index]);
+        });
+  }
+
+  Widget _buildRow(String text) {
+    return new ListTile(
+      title: new Text(
+        text,
+        //style: _biggerFont,
       ),
     );
   }
