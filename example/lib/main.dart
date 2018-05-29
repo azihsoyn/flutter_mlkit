@@ -45,31 +45,21 @@ class _MyAppState extends State<MyApp> {
         floatingActionButton: new FloatingActionButton(
           onPressed: () async {
             try {
-              print("1");
               //var file = await ImagePicker.pickImage(source: ImageSource.camera);
               var file =
                   await ImagePicker.pickImage(source: ImageSource.gallery);
-              print("2");
-              print(file);
               setState(() {
-                print("3");
                 _file = file;
               });
-              print("4");
               try {
-                print("5");
                 var currentLabels = await detector.detectFromPath(_file?.path);
-                print("6");
-                print(currentLabels);
                 setState(() {
                   _currentLabels = currentLabels;
                 });
               } catch (e) {
-                print("catch error!");
                 print(e.toString());
               }
             } catch (e) {
-              print("catch error2!");
               print(e.toString());
             }
           },
