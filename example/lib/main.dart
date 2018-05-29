@@ -13,7 +13,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   File _file = File("");
-  List<String> _currentLabels = List<String>(0);
+  List<VisionText> _currentLabels = List<VisionText>(0);
 
   FirebaseVisionTextDetector detector = FirebaseVisionTextDetector.instance;
 
@@ -92,7 +92,7 @@ class _MyAppState extends State<MyApp> {
             // ...then generate 10 more and add them to the suggestions list.
             _currentLabels.addAll(_currentLabels);
           }
-          return _buildRow(_currentLabels[index]);
+          return _buildRow(_currentLabels[index].text);
         });
   }
 

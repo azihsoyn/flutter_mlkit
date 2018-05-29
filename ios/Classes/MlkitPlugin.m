@@ -42,9 +42,8 @@ FIRVisionTextDetector *textDetector;
       } else if (features != nil) {
         // Recognized text
         for (id <FIRVisionText> feature in features) {
-          NSString *value = feature.text;
           //NSArray<NSValue *> *corners = feature.cornerPoints;
-          [ret addObject:value];
+          [ret addObject:visionTextToDictionary(feature)];
         }
       }
       result(ret);
@@ -53,6 +52,34 @@ FIRVisionTextDetector *textDetector;
   } else {
     result(FlutterMethodNotImplemented);
   }
+}
+
+NSDictionary *visionTextToDictionary(id<FIRVisionText> visionText) {
+  return @{
+    @"text" : visionText.text,
+    // https://stackoverflow.com/questions/7726924/saving-nsrect-to-nsuserdefaults/7727344
+    //@"frame": [NSValue valueWithCGRect:visionText.frame],
+    /*
+    @"displayName" : userInfo.displayName ?: [NSNull null],
+    @"uid" : userInfo.uid,
+    @"photoUrl" : userInfo.photoURL.absoluteString ?: [NSNull null],
+    @"email" : userInfo.email ?: [NSNull null],
+    */
+  };
+}
+
+NSDictionary *visionTextBlockToDictionary(FIRVisionTextBlock * visionTextBlock) {
+  return @{
+    @"text" : visionTextBlock.text,
+    //@"frame": [NSValue valueWithCGRect:visionTextBlock.frame],
+    @"line": visionTextBlock.lines,
+    /*
+    @"displayName" : userInfo.displayName ?: [NSNull null],
+    @"uid" : userInfo.uid,
+    @"photoUrl" : userInfo.photoURL.absoluteString ?: [NSNull null],
+    @"email" : userInfo.email ?: [NSNull null],
+    */
+  };
 }
 
 @end
