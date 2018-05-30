@@ -16,15 +16,30 @@ class VisionTextBlock extends VisionText {
   final List<VisionTextLine> lines;
 
   VisionTextBlock._(Map<dynamic, dynamic> data)
-      : lines = null,
+      : lines = data['lines'] == null
+            ? null
+            : data['lines']
+                .map<VisionTextLine>((dynamic item) => VisionTextLine._(item))
+                .toList(),
         super._(data);
 }
 
-class VisionTextLine {
+class VisionTextLine extends VisionText {
   final List<VisionTextElement> elements;
+
+  VisionTextLine._(Map<dynamic, dynamic> data)
+      : elements = data['elements'] == null
+            ? null
+            : data['elements']
+                .map<VisionTextElement>(
+                    (dynamic item) => VisionTextElement._(item))
+                .toList(),
+        super._(data);
 }
 
-class VisionTextElement {}
+class VisionTextElement extends VisionText {
+  VisionTextElement._(Map<dynamic, dynamic> data) : super._(data);
+}
 
 class FirebaseMlkit {
   static const MethodChannel _channel =
