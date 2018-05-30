@@ -43,7 +43,35 @@ FIRVisionTextDetector *textDetector;
         // Recognized text
         for (id <FIRVisionText> feature in features) {
           //NSArray<NSValue *> *corners = feature.cornerPoints;
-          [ret addObject:visionTextToDictionary(feature)];
+          // Blocks contain lines of text
+          if ([feature isKindOfClass:[FIRVisionTextBlock class]]) {
+           FIRVisionTextBlock *block = (FIRVisionTextBlock *)feature;
+           [ret addObject:visionTextBlockToDictionary(block)];
+           for (FIRVisionTextLine *line in block.lines) {
+             // ...
+             for (FIRVisionTextElement *element in line.elements) {
+               // ...
+             }
+           }
+          }
+
+          // Lines contain text elements
+          else if ([feature isKindOfClass:[FIRVisionTextLine class]]) {
+           FIRVisionTextLine *line = (FIRVisionTextLine *)feature;
+           [ret addObject:visionTextLineToDictionary(line)];
+           for (FIRVisionTextElement *element in line.elements) {
+             // ...
+           }
+          }
+
+          // Text elements are typically words
+          else if ([feature isKindOfClass:[FIRVisionTextElement class]]) {
+           FIRVisionTextElement *element = (FIRVisionTextElement *)feature;
+           [ret addObject:visionTextElementToDictionary(element)];
+          }
+          else {
+           [ret addObject:visionTextToDictionary(feature)];
+          }
         }
       }
       result(ret);
@@ -79,6 +107,18 @@ NSDictionary *visionTextBlockToDictionary(FIRVisionTextBlock * visionTextBlock) 
     @"photoUrl" : userInfo.photoURL.absoluteString ?: [NSNull null],
     @"email" : userInfo.email ?: [NSNull null],
     */
+  };
+}
+
+NSDictionary *visionTextLineToDictionary(FIRVisionTextLine * visionTextLine) {
+  return @{
+    @"text" : visionTextLine.text,
+  };
+}
+
+NSDictionary *visionTextElementToDictionary(FIRVisionTextElement * visionTextElement) {
+  return @{
+    @"text" : visionTextElement.text,
   };
 }
 
