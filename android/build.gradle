@@ -33,6 +33,7 @@ android {
         disable 'InvalidPackage'
     }
     dependencies {
+        implementation 'com.google.guava:guava:20.0'
         api 'com.google.firebase:firebase-core:15.+'
         api 'com.google.firebase:firebase-ml-vision:15.+'
     }

@@ -11,6 +11,8 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import android.support.annotation.NonNull;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -63,8 +65,7 @@ public class MlkitPlugin implements MethodCallHandler {
                         new OnSuccessListener<FirebaseVisionText>() {
                           @Override
                           public void onSuccess(FirebaseVisionText texts) {
-                            List<String> _texts = processTextRecognitionResult(texts);
-                            result.success(_texts);
+                            result.success(processTextRecognitionResult(texts));
                           }
                         })
                 .addOnFailureListener(
@@ -84,21 +85,37 @@ public class MlkitPlugin implements MethodCallHandler {
     }
   }
 
-  private List<String> processTextRecognitionResult(FirebaseVisionText texts) {
-    List<String> ret = new ArrayList<>();;
+  private ImmutableList<ImmutableMap<String, Object>> processTextRecognitionResult(FirebaseVisionText texts) {
+    ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
+            ImmutableList.<ImmutableMap<String, Object>>builder();
+
     List<FirebaseVisionText.Block> blocks = texts.getBlocks();
     if (blocks.size() == 0) {
-      return ret;
+      return null;
     }
     for (int i = 0; i < blocks.size(); i++) {
+      ImmutableMap.Builder<String, Object> blockBuilder = ImmutableMap.<String, Object>builder();
+      blockBuilder.put("text", blocks.get(i).getText());
+
       List<FirebaseVisionText.Line> lines = blocks.get(i).getLines();
+      ImmutableList.Builder<ImmutableMap<String, Object>> linesBuilder = ImmutableList.<ImmutableMap<String, Object>>builder();
       for (int j = 0; j < lines.size(); j++) {
+        ImmutableMap.Builder<String, Object> lineBuilder = ImmutableMap.<String, Object>builder();
+        lineBuilder.put("text", lines.get(j).getText());
         List<FirebaseVisionText.Element> elements = lines.get(j).getElements();
+
+        ImmutableList.Builder<ImmutableMap<String, Object>> elementsBuilder = ImmutableList.<ImmutableMap<String, Object>>builder();
         for (int k = 0; k < elements.size(); k++) {
-          ret.add(elements.get(k).getText());
+          ImmutableMap.Builder<String, Object> elementBuilder = ImmutableMap.<String, Object>builder();
+          elementBuilder.put("text", elements.get(k).getText());
+          elementsBuilder.add(elementBuilder.build());
         }
+        lineBuilder.put("elements", elementsBuilder.build());
+        linesBuilder.add(lineBuilder.build());
       }
+      blockBuilder.put("lines", linesBuilder.build());
+      dataBuilder.add(blockBuilder.build());
     }
-    return ret;
+    return dataBuilder.build();
   }
 }
