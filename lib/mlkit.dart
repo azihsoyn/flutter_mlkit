@@ -1,15 +1,19 @@
 import 'dart:async';
+import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/services.dart';
 
 class VisionText {
   final Map<dynamic, dynamic> _data;
 
-  // final CGRect frame;
   String get text => _data['text'];
-  final List<dynamic> cornerPoints;
+  final Rect rect;
+  final List<Point> cornerPoints;
 
-  VisionText._(this._data);
+  VisionText._(this._data)
+      : rect = null,
+        cornerPoints = null;
 }
 
 class VisionTextBlock extends VisionText {
