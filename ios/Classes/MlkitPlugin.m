@@ -75,8 +75,10 @@ FIRVisionTextDetector *textDetector;
 NSDictionary *visionTextToDictionary(id<FIRVisionText> visionText) {
     return @{
              @"text" : visionText.text,
-             // https://stackoverflow.com/questions/7726924/saving-nsrect-to-nsuserdefaults/7727344
-             //@"frame": [NSValue valueWithCGRect:visionText.frame],
+             @"rect_left": @(visionText.frame.origin.x),
+             @"rect_top": @(visionText.frame.origin.y),
+             @"rect_right": @(visionText.frame.origin.x + visionText.frame.size.width),
+             @"rect_bottom": @(visionText.frame.origin.y + visionText.frame.size.height),
              };
 }
 
@@ -87,7 +89,10 @@ NSDictionary *visionTextBlockToDictionary(FIRVisionTextBlock * visionTextBlock) 
     }
     return @{
              @"text" : visionTextBlock.text,
-             //@"frame": [NSValue valueWithCGRect:visionTextBlock.frame],
+             @"rect_left": @(visionTextBlock.frame.origin.x),
+             @"rect_top": @(visionTextBlock.frame.origin.y),
+             @"rect_right": @(visionTextBlock.frame.origin.x + visionTextBlock.frame.size.width),
+             @"rect_bottom": @(visionTextBlock.frame.origin.y + visionTextBlock.frame.size.height),
              @"lines": lines,
              };
 }
@@ -99,6 +104,10 @@ NSDictionary *visionTextLineToDictionary(FIRVisionTextLine * visionTextLine) {
     }
     return @{
              @"text" : visionTextLine.text,
+             @"rect_left": @(visionTextLine.frame.origin.x),
+             @"rect_top": @(visionTextLine.frame.origin.y),
+             @"rect_right": @(visionTextLine.frame.origin.x + visionTextLine.frame.size.width),
+             @"rect_bottom": @(visionTextLine.frame.origin.y + visionTextLine.frame.size.height),
              @"elements": elements,
              };
 }
@@ -106,6 +115,10 @@ NSDictionary *visionTextLineToDictionary(FIRVisionTextLine * visionTextLine) {
 NSDictionary *visionTextElementToDictionary(FIRVisionTextElement * visionTextElement) {
     return @{
              @"text" : visionTextElement.text,
+             @"rect_left": @(visionTextElement.frame.origin.x),
+             @"rect_top": @(visionTextElement.frame.origin.y),
+             @"rect_right": @(visionTextElement.frame.origin.x + visionTextElement.frame.size.width),
+             @"rect_bottom": @(visionTextElement.frame.origin.y + visionTextElement.frame.size.height),
              };
 }
 
