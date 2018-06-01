@@ -12,8 +12,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  File _file = File("");
-  List<VisionText> _currentLabels = List<VisionText>(0);
+  File _file;
+  List<VisionText> _currentLabels = <VisionText>[];
 
   FirebaseVisionTextDetector detector = FirebaseVisionTextDetector.instance;
 
@@ -29,19 +29,7 @@ class _MyAppState extends State<MyApp> {
         appBar: new AppBar(
           title: new Text('Plugin example app'),
         ),
-        body: _buildSuggestions(),
-        //children: <Widget>[
-        /*
-              Image.file(_file),
-              ListView.builder(
-                  padding: const EdgeInsets.all(20.0),
-                  itemBuilder: (context, i) {
-                    return new ListTile(
-                      title: new Text(_currentLabels[i]),
-                    );
-                  })
-                  */
-        //]),
+        body: _buildBody(),
         floatingActionButton: new FloatingActionButton(
           onPressed: () async {
             try {
@@ -69,38 +57,45 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Widget _buildSuggestions() {
-    return new ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        // The itemBuilder callback is called once per suggested word pairing,
-        // and places each suggestion into a ListTile row.
-        // For even rows, the function adds a ListTile row for the word pairing.
-        // For odd rows, the function adds a Divider widget to visually
-        // separate the entries. Note that the divider may be difficult
-        // to see on smaller devices.
-        itemBuilder: (context, i) {
-          // Add a one-pixel-high divider widget before each row in theListView.
-          if (i.isOdd) return new Divider();
+  Widget _buildImage() {
+    return new SizedBox(
+      height: 500.0,
+      child: new Center(
+        child: _file == null
+            ? Text('No Image')
+            : Image.file(_file, fit: BoxFit.fitWidth),
+      ),
+    );
+  }
 
-          // The syntax "i ~/ 2" divides i by 2 and returns an integer result.
-          // For example: 1, 2, 3, 4, 5 becomes 0, 1, 1, 2, 2.
-          // This calculates the actual number of word pairings in the ListView,
-          // minus the divider widgets.
-          final index = i ~/ 2;
-          // If you've reached the end of the available word pairings...
-          if (index >= _currentLabels.length) {
-            // ...then generate 10 more and add them to the suggestions list.
-            _currentLabels.addAll(_currentLabels);
-          }
-          return _buildRow(_currentLabels[index].text);
-        });
+  Widget _buildBody() {
+    return Column(
+      children: <Widget>[
+        _buildImage(),
+        _buildList(_currentLabels),
+      ],
+    );
+  }
+
+  Widget _buildList(List<VisionText> texts) {
+    if (texts.length == 0) {
+      return Text('Empty');
+    }
+    return SizedBox(
+      height: 200.0,
+      child: ListView.builder(
+          padding: const EdgeInsets.all(1.0),
+          itemCount: texts.length,
+          itemBuilder: (context, i) {
+            return _buildRow(texts[i].text);
+          }),
+    );
   }
 
   Widget _buildRow(String text) {
     return new ListTile(
       title: new Text(
         text,
-        //style: _biggerFont,
       ),
     );
   }
