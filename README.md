@@ -6,6 +6,22 @@ A Flutter plugin to use the Firebase ML Kit.
 
 *Note*: This plugin is still under development, and some APIs might not be available yet. [Feedback](https://github.com/azihsoyn/flutter_mlkit/issues) and [Pull Requests](https://github.com/azihsoyn/flutter_mlkit/pulls) are most welcome!
 
+## Features
+
+| Feature                        | Android | iOS |
+|--------------------------------|---------|-----|
+| Recognize text(on device)      | ✅       | ✅   |
+| Recognize text(cloud)          | yet     | yet |
+| Detect faces(on device)        | yet     | yet |
+| Detect faces(cloud)            | yet     | yet |
+| Scan barcodes(on device)       | yet     | yet |
+| Scan barcodes(cloud)           | yet     | yet |
+| Label Images(on device)        | yet     | yet |
+| Label Images(cloud)            | yet     | yet |
+| Recognize landmarks(on device) | yet     | yet |
+| Recognize landmarks(cloud)     | yet     | yet |
+| Custom model                   | yet     | yet |
+
 ## Usage
 To use this plugin, add `mlkit` as a [dependency in your pubspec.yaml file](https://flutter.io/platform-plugins/).
 
