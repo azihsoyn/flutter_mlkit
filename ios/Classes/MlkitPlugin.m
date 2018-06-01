@@ -73,16 +73,31 @@ FIRVisionTextDetector *textDetector;
 }
 
 NSDictionary *visionTextToDictionary(id<FIRVisionText> visionText) {
+    __block NSMutableArray<NSDictionary *> *points =[NSMutableArray array];
+    [visionText.cornerPoints enumerateObjectsUsingBlock:^(NSValue * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [points addObject:@{
+                            @"x": @(((__bridge CGPoint *)obj)->x),
+                            @"y": @(((__bridge CGPoint *)obj)->y),
+                            }];
+    }];
     return @{
              @"text" : visionText.text,
              @"rect_left": @(visionText.frame.origin.x),
              @"rect_top": @(visionText.frame.origin.y),
              @"rect_right": @(visionText.frame.origin.x + visionText.frame.size.width),
              @"rect_bottom": @(visionText.frame.origin.y + visionText.frame.size.height),
+             @"points": points,
              };
 }
 
 NSDictionary *visionTextBlockToDictionary(FIRVisionTextBlock * visionTextBlock) {
+    __block NSMutableArray<NSDictionary *> *points =[NSMutableArray array];
+    [visionTextBlock.cornerPoints enumerateObjectsUsingBlock:^(NSValue * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [points addObject:@{
+                            @"x": @(((__bridge CGPoint *)obj)->x),
+                            @"y": @(((__bridge CGPoint *)obj)->y),
+                            }];
+    }];
     NSMutableArray<NSDictionary *> *lines = [NSMutableArray array];
     for (FIRVisionTextLine *line in visionTextBlock.lines) {
         [lines addObject: visionTextLineToDictionary(line)];
@@ -94,10 +109,19 @@ NSDictionary *visionTextBlockToDictionary(FIRVisionTextBlock * visionTextBlock) 
              @"rect_right": @(visionTextBlock.frame.origin.x + visionTextBlock.frame.size.width),
              @"rect_bottom": @(visionTextBlock.frame.origin.y + visionTextBlock.frame.size.height),
              @"lines": lines,
+             @"points": points,
              };
 }
 
 NSDictionary *visionTextLineToDictionary(FIRVisionTextLine * visionTextLine) {
+    __block NSMutableArray<NSDictionary *> *points =[NSMutableArray array];
+    [visionTextLine.cornerPoints enumerateObjectsUsingBlock:^(NSValue * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [points addObject:@{
+                            @"x": @(((__bridge CGPoint *)obj)->x),
+                            @"y": @(((__bridge CGPoint *)obj)->y),
+                            }];
+    }];
+    
     NSMutableArray<NSDictionary *> *elements = [NSMutableArray array];
     for (FIRVisionTextElement *element in visionTextLine.elements) {
         [elements addObject: visionTextElementToDictionary(element)];
@@ -109,16 +133,25 @@ NSDictionary *visionTextLineToDictionary(FIRVisionTextLine * visionTextLine) {
              @"rect_right": @(visionTextLine.frame.origin.x + visionTextLine.frame.size.width),
              @"rect_bottom": @(visionTextLine.frame.origin.y + visionTextLine.frame.size.height),
              @"elements": elements,
+             @"points": points,
              };
 }
 
 NSDictionary *visionTextElementToDictionary(FIRVisionTextElement * visionTextElement) {
+    __block NSMutableArray<NSDictionary *> *points =[NSMutableArray array];
+    [visionTextElement.cornerPoints enumerateObjectsUsingBlock:^(NSValue * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [points addObject:@{
+                            @"x": @(((__bridge CGPoint *)obj)->x),
+                            @"y": @(((__bridge CGPoint *)obj)->y),
+                            }];
+    }];
     return @{
              @"text" : visionTextElement.text,
              @"rect_left": @(visionTextElement.frame.origin.x),
              @"rect_top": @(visionTextElement.frame.origin.y),
              @"rect_right": @(visionTextElement.frame.origin.x + visionTextElement.frame.size.width),
              @"rect_bottom": @(visionTextElement.frame.origin.y + visionTextElement.frame.size.height),
+             @"points": points,
              };
 }
 

@@ -9,7 +9,7 @@ class VisionText {
 
   String get text => _data['text'];
   final Rect rect;
-  final List<Point<int>> cornerPoints;
+  final List<Point<num>> cornerPoints;
 
   VisionText._(this._data)
       : rect = Rect.fromLTRB(_data['rect_left'], _data['rect_top'],
@@ -17,8 +17,8 @@ class VisionText {
         cornerPoints = _data['points'] == null
             ? null
             : _data['points']
-                .map<Point<int>>(
-                    (dynamic item) => Point<int>(item['x'], item['y']))
+                .map<Point<num>>(
+                    (dynamic item) => Point<num>(item['x'], item['y']))
                 .toList();
 }
 
