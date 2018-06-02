@@ -58,12 +58,15 @@ class _MyAppState extends State<MyApp> {
   }
 
   Widget _buildImage() {
-    return new SizedBox(
+    return SizedBox(
       height: 500.0,
       child: new Center(
         child: _file == null
             ? Text('No Image')
-            : Image.file(_file, fit: BoxFit.fitWidth),
+            : Container(
+                foregroundDecoration: TextDetectDecoration(_currentLabels),
+                child: Image.file(_file, fit: BoxFit.fitWidth),
+              ),
       ),
     );
   }
@@ -93,10 +96,57 @@ class _MyAppState extends State<MyApp> {
   }
 
   Widget _buildRow(String text) {
-    return new ListTile(
-      title: new Text(
-        text,
+    return ListTile(
+      title: Text(
+        "Text: ${text}",
       ),
+      dense: true,
     );
+  }
+}
+
+class TextDetectDecoration extends Decoration {
+  final List<VisionText> _texts;
+  TextDetectDecoration(List<VisionText> texts) : _texts = texts;
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback onChanged]) {
+    return new _TextDetectPainter(_texts);
+  }
+}
+
+class _TextDetectPainter extends BoxPainter {
+  final List<VisionText> _texts;
+  _TextDetectPainter(texts) : _texts = texts;
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final paint = new Paint()
+      ..strokeWidth = 2.0
+      ..color = Colors.red
+      ..style = PaintingStyle.stroke;
+
+    for (var text in _texts) {
+      print("text : ${text.text}, rect : ${text.rect}");
+      final _ratio = 4.9;
+      final _rect = Rect.fromLTRB(
+          offset.dx + text.rect.left / _ratio,
+          offset.dy + text.rect.top / _ratio,
+          offset.dx + text.rect.right / _ratio,
+          offset.dy + text.rect.bottom / _ratio);
+      //final _rect = Rect.fromLTRB(24.0, 115.0, 75.0, 131.2);
+      print("_rect : ${_rect}");
+      canvas.drawRect(_rect, paint);
+    }
+
+    print("offset : ${offset}");
+    print("configuration : ${configuration}");
+
+    final rect = offset & configuration.size;
+
+    print("rect container : ${rect}");
+
+    //canvas.drawRect(rect, paint);
+    canvas.restore();
   }
 }
