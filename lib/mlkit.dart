@@ -74,12 +74,12 @@ class FirebaseVisionTextDetector {
   FirebaseVisionTextDetector._() {}
 
   Future<List<VisionText>> detectFromPath(String filepath) async {
-    List<dynamic> features = await _channel.invokeMethod(
+    List<dynamic> texts = await _channel.invokeMethod(
         "FirebaseVisionTextDetector#detectFromPath", {'filepath': filepath});
     List<VisionText> ret = [];
-    features.forEach((dynamic feature) {
-      final VisionTextBlock block = new VisionTextBlock._(feature);
-      ret.add(block);
+    texts.forEach((dynamic item) {
+      final VisionTextBlock text = new VisionTextBlock._(item);
+      ret.add(text);
     });
     return ret;
   }
@@ -89,23 +89,35 @@ class FirebaseVisionBarcodeDetector {
   static const MethodChannel _channel =
       const MethodChannel('plugins.flutter.io/mlkit');
 
-  static FirebaseVisionTextDetector instance =
-      new FirebaseVisionTextDetector._();
+  static FirebaseVisionBarcodeDetector instance =
+      new FirebaseVisionBarcodeDetector._();
 
   FirebaseVisionBarcodeDetector._() {}
 
   Future<List<VisionBarcode>> detectFromPath(String filepath) async {
-    List<dynamic> features = await _channel.invokeMethod(
-        "FirebaseVisionBarcodeDetector#detectFromPath", {'filepath': filepath});
-    List<VisionBarcode> ret = [];
-    features.forEach((dynamic feature) {
-      final VisionBarcode barcode = new VisionBarcode._(feature);
-      ret.add(barcode);
-    });
-    return ret;
+    try {
+      List<dynamic> barcodes = await _channel.invokeMethod(
+          "FirebaseVisionBarcodeDetector#detectFromPath",
+          {'filepath': filepath});
+      List<VisionBarcode> ret = [];
+      barcodes.forEach((dynamic item) {
+        print("item : ${item}");
+        final VisionBarcode barcode = new VisionBarcode._(item);
+        ret.add(barcode);
+      });
+      return ret;
+    } catch (e) {
+      print(
+          "Error on FirebaseVisionBarcodeDetector#detectFromPath : ${e.toString()}");
+    }
+    return null;
   }
 }
 
+// ios
+//   https://firebase.google.com/docs/reference/ios/firebasemlvision/api/reference/Classes/FIRVisionBarcode
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/barcode/FirebaseVisionBarcode
 class VisionBarcode {
   final Map<dynamic, dynamic> _data;
 
@@ -128,8 +140,8 @@ class VisionBarcode {
   VisionBarcode._(this._data)
       : rect = Rect.fromLTRB(_data['rect_left'], _data['rect_top'],
             _data['rect_right'], _data['rect_bottom']),
-        rawValue = _data['raw_value'],
-        displayValue = _data['display_value'],
+        rawValue = _data['raw_value'] ?? null,
+        displayValue = _data['display_value'] ?? null,
         format = VisionBarcodeFormat._(_data['format']),
         cornerPoints = _data['points'] == null
             ? null
@@ -252,9 +264,9 @@ enum VisionBarcodeValueType {
 class VisionBarcodeEmail {
   VisionBarcodeEmail._(Map<dynamic, dynamic> data)
       : type = VisionBarcodeEmailType.values.elementAt(data['type']),
-        address = data['address'],
-        body = data['body'],
-        subject = data['subject'];
+        address = data['address'] ?? null,
+        body = data['body'] ?? null,
+        subject = data['subject'] ?? null;
 
   final String address;
   final String body;
@@ -281,7 +293,7 @@ class VisionBarcodePhone {
   final String number;
   final VisionBarcodePhoneType type;
   VisionBarcodePhone._(Map<dynamic, dynamic> data)
-      : number = data['number'],
+      : number = data['number'] ?? null,
         type = VisionBarcodePhoneType.values.elementAt(data['type']);
 }
 
@@ -314,8 +326,8 @@ enum VisionBarcodePhoneType {
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/barcode/FirebaseVisionBarcode.Sms
 class VisionBarcodeSMS {
   VisionBarcodeSMS._(Map<dynamic, dynamic> data)
-      : message = data['message'],
-        phoneNumber = data['phone_number'];
+      : message = data['message'] ?? null,
+        phoneNumber = data['phone_number'] ?? null;
   final String message;
   final String phoneNumber;
 }
@@ -326,8 +338,8 @@ class VisionBarcodeSMS {
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/barcode/FirebaseVisionBarcode.UrlBookmark
 class VisionBarcodeURLBookmark {
   VisionBarcodeURLBookmark._(Map<dynamic, dynamic> data)
-      : title = data['title'],
-        url = data['url'];
+      : title = data['title'] ?? null,
+        url = data['url'] ?? null;
   final String title;
   final String url;
 }
@@ -413,9 +425,8 @@ class VisionBarcodeContactInfo {
         urls = data['urls'] == null
             ? null
             : data['urls'].map<String>((dynamic item) => item).toList(),
-        jobTitle = data['job_title'] == null ? null : data['job_title'],
-        organization =
-            data['organization'] == null ? null : data['organization'];
+        jobTitle = data['job_title'] ?? null,
+        organization = data['organization'] ?? null;
   final List<VisionBarcodeAddress> addresses;
   final List<VisionBarcodeEmail> emails;
   final VisionBarcodePersonName name;
@@ -463,15 +474,13 @@ enum VisionBarcodeAddressType {
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/barcode/FirebaseVisionBarcode.PersonName
 class VisionBarcodePersonName {
   VisionBarcodePersonName._(Map<dynamic, dynamic> data)
-      : formattedName =
-            data['formatted_name'] == null ? null : data['formatted_name'],
-        first = data['first'] == null ? null : data['first'],
-        last = data['last'] == null ? null : data['last'],
-        middle = data['middle'] == null ? null : data['middle'],
-        prefix = data['prefix'] == null ? null : data['prefix'],
-        pronounciation =
-            data['pronounciation'] == null ? null : data['pronounciation'],
-        suffix = data['suffix'] == null ? null : data['suffix'];
+      : formattedName = data['formatted_name'] ?? null,
+        first = data['first'] ?? null,
+        last = data['last'] ?? null,
+        middle = data['middle'] ?? null,
+        prefix = data['prefix'] ?? null,
+        pronounciation = data['pronounciation'] ?? null,
+        suffix = data['suffix'] ?? null;
   final String formattedName;
   final String first;
   final String last;

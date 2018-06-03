@@ -29,7 +29,7 @@ FIRVisionBarcodeDetector *barcodeDetector;
     NSString *path = call.arguments[@"filepath"];
     UIImage* uiImage = [UIImage imageWithContentsOfFile:path];
     FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
-
+    
     if ([@"FirebaseVisionTextDetector#detectFromPath" isEqualToString:call.method]) {
         textDetector = [vision textDetector];
         [textDetector detectInImage:image
@@ -68,6 +68,11 @@ FIRVisionBarcodeDetector *barcodeDetector;
                              return;
                          }];
     } else if ([@"FirebaseVisionBarcodeDetector#detectFromPath" isEqualToString:call.method]) {
+        /*
+         FIRVisionBarcodeDetectorOptions *options = [[FIRVisionBarcodeDetectorOptions alloc]
+         initWithFormats: FIRVisionBarcodeFormatAll];
+         barcodeDetector = [vision barcodeDetectorWithOptions:options];
+         */
         barcodeDetector = [vision barcodeDetector];
         [barcodeDetector detectInImage:image
                             completion:^(NSArray<FIRVisionBarcode *> *barcodes,
@@ -77,28 +82,9 @@ FIRVisionBarcodeDetector *barcodeDetector;
                                     result(ret);
                                     return;
                                 } else if (barcodes != nil) {
-                                    // Recognized barcode
+                                    // Scaned barcode
                                     for (FIRVisionBarcode *barcode in barcodes) {
-                                        // Blocks contain lines of text
-                                        if ([barcode isKindOfClass:[FIRVisionTextBlock class]]) {
-                                            FIRVisionTextBlock *block = (FIRVisionTextBlock *)barcode;
-                                            [ret addObject:visionTextBlockToDictionary(block)];
-                                        }
-
-                                        // Lines contain text elements
-                                        else if ([barcode isKindOfClass:[FIRVisionTextLine class]]) {
-                                            FIRVisionTextLine *line = (FIRVisionTextLine *)barcode;
-                                            [ret addObject:visionTextLineToDictionary(line)];
-                                        }
-
-                                        // Text elements are typically words
-                                        else if ([barcode isKindOfClass:[FIRVisionTextElement class]]) {
-                                            FIRVisionTextElement *element = (FIRVisionTextElement *)barcode;
-                                            [ret addObject:visionTextElementToDictionary(element)];
-                                        }
-                                        else {
-                                            [ret addObject:visionTextToDictionary(barcode)];
-                                        }
+                                        [ret addObject:visionBarcodeToDictionary(barcode)];
                                     }
                                 }
                                 result(ret);
@@ -189,6 +175,157 @@ NSDictionary *visionTextElementToDictionary(FIRVisionTextElement * visionTextEle
              @"rect_right": @(visionTextElement.frame.origin.x + visionTextElement.frame.size.width),
              @"rect_bottom": @(visionTextElement.frame.origin.y + visionTextElement.frame.size.height),
              @"points": points,
+             };
+}
+
+NSDictionary *visionBarcodeToDictionary(FIRVisionBarcode * barcode) {
+    __block NSMutableArray<NSDictionary *> *points =[NSMutableArray array];
+    [barcode.cornerPoints enumerateObjectsUsingBlock:^(NSValue * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [points addObject:@{
+                            @"x": @(((__bridge CGPoint *)obj)->x),
+                            @"y": @(((__bridge CGPoint *)obj)->y),
+                            }];
+    }];
+    return @{
+             @"raw_value" : barcode.rawValue,
+             @"display_value": barcode.displayValue ? barcode.displayValue : [NSNull null],
+             @"rect_left": @(barcode.frame.origin.x),
+             @"rect_top": @(barcode.frame.origin.y),
+             @"rect_top": @(barcode.frame.origin.y),
+             @"rect_right": @(barcode.frame.origin.x + barcode.frame.size.width),
+             @"rect_bottom": @(barcode.frame.origin.y + barcode.frame.size.height),
+             @"format": @(barcode.format),
+             @"value_type": @(barcode.valueType),
+             @"points": points,
+             @"wifi": barcode.wifi ? visionBarcodeWiFiToDictionary(barcode.wifi) : [NSNull null],
+             @"email": barcode.email ? visionBarcodeEmailToDictionary(barcode.email) : [NSNull null],
+             @"phone": barcode.phone ? visionBarcodePhoneToDictionary(barcode.phone) : [NSNull null],
+             @"sms": barcode.sms ? visionBarcodeSMSToDictionary(barcode.sms) : [NSNull null],
+             @"url": barcode.URL ? visionBarcodeURLToDictionary(barcode.URL) : [NSNull null],
+             @"geo_point": barcode.geoPoint ? visionBarcodeGeoPointToDictionary(barcode.geoPoint) : [NSNull null],
+             @"contact_info": barcode.contactInfo ? visionBarcodeContactInfoToDictionary(barcode.contactInfo) : [NSNull null],
+             @"calendar_event": barcode.calendarEvent ? visionBarcodeCalendarEventToDictionary(barcode.calendarEvent) : [NSNull null],
+             @"driver_license": barcode.driverLicense ? visionBarcodeDriverLicenseToDictionary(barcode.driverLicense) : [NSNull null],
+             };
+}
+
+NSDictionary *visionBarcodeWiFiToDictionary(FIRVisionBarcodeWiFi* wifi){
+    return @{@"ssid": wifi.ssid,
+             @"password": wifi.password,
+             @"encryption_type": @(wifi.type),
+             };
+}
+
+NSDictionary *visionBarcodeEmailToDictionary(FIRVisionBarcodeEmail* email){
+    return @{@"address": email.address,
+             @"body": email.body,
+             @"subject": email.subject,
+             @"type": @(email.type),
+             };
+}
+
+NSDictionary *visionBarcodePhoneToDictionary(FIRVisionBarcodePhone* phone){
+    return @{@"number": phone.number,
+             @"type": @(phone.type),
+             };
+}
+
+NSDictionary *visionBarcodeSMSToDictionary(FIRVisionBarcodeSMS* sms){
+    return @{@"phone_number": sms.phoneNumber,
+             @"message": sms.message,
+             };
+}
+
+NSDictionary *visionBarcodeURLToDictionary(FIRVisionBarcodeURLBookmark* url){
+    return @{@"title": url.title,
+             @"url": url.url,
+             };
+}
+
+NSDictionary *visionBarcodeGeoPointToDictionary(FIRVisionBarcodeGeoPoint* geo){
+    return @{@"longitude": @(geo.longitude),
+             @"latitude": @(geo.latitude),
+             };
+}
+
+NSDictionary *visionBarcodeContactInfoToDictionary(FIRVisionBarcodeContactInfo* contact){
+    __block NSMutableArray<NSDictionary *> *addresses =[NSMutableArray array];
+    [contact.addresses enumerateObjectsUsingBlock:^(FIRVisionBarcodeAddress * _Nonnull address, NSUInteger idx, BOOL * _Nonnull stop) {
+        __block NSMutableArray<NSString *> *addressLines =[NSMutableArray array];
+        [address.addressLines enumerateObjectsUsingBlock:^(NSString * _Nonnull addressLine, NSUInteger idx, BOOL * _Nonnull stop) {
+            [addressLines addObject:addressLine];
+        }];
+        [addresses addObject:@{
+                               @"address_lines": addressLines,
+                               @"type": @(address.type),
+                               }];
+    }];
+    
+    __block NSMutableArray<NSDictionary *> *emails =[NSMutableArray array];
+    [contact.emails enumerateObjectsUsingBlock:^(FIRVisionBarcodeEmail * _Nonnull email, NSUInteger idx, BOOL * _Nonnull stop) {
+        [emails addObject:@{
+                            @"address": email.address,
+                            @"body": email.body,
+                            @"subjec": email.subject,
+                            @"type": @(email.type),
+                            }];
+    }];
+    
+    __block NSMutableArray<NSDictionary *> *phones =[NSMutableArray array];
+    [contact.phones enumerateObjectsUsingBlock:^(FIRVisionBarcodePhone * _Nonnull phone, NSUInteger idx, BOOL * _Nonnull stop) {
+        [phones addObject:@{
+                            @"number": phone.number,
+                            @"type": @(phone.type),
+                            }];
+    }];
+    
+    __block NSMutableArray<NSString *> *urls =[NSMutableArray array];
+    [contact.urls enumerateObjectsUsingBlock:^(NSString * _Nonnull url, NSUInteger idx, BOOL * _Nonnull stop) {
+        [urls addObject:url];
+    }];
+    return @{@"addresses": addresses,
+             @"emails": emails,
+             @"name": @{
+                     @"formatted_name": contact.name.formattedName,
+                     @"first": contact.name.first,
+                     @"last": contact.name.last,
+                     @"middle": contact.name.middle,
+                     @"prefix": contact.name.prefix,
+                     @"pronounciation" : contact.name.pronounciation,
+                     @"suffix": contact.name.suffix,
+                     },
+             @"phones": phones,
+             @"urls": urls,
+             @"job_title": contact.jobTitle,
+             @"organization": contact.organization,
+             };
+}
+
+NSDictionary  * visionBarcodeCalendarEventToDictionary(FIRVisionBarcodeCalendarEvent* calendar){
+    return @{@"event_description": calendar.eventDescription,
+             @"location": calendar.location,
+             @"organizer": calendar.organizer,
+             @"status": calendar.status,
+             @"summary": calendar.summary,
+             @"start": calendar.start,
+             @"end": calendar.end,
+             };
+}
+
+NSDictionary *visionBarcodeDriverLicenseToDictionary(FIRVisionBarcodeDriverLicense* license){
+    return @{@"first_name": license.firstName,
+             @"middle_name": license.middleName,
+             @"last_name": license.lastName,
+             @"gender": license.gender,
+             @"address_city": license.addressCity,
+             @"address_state": license.addressState,
+             @"address_zip": license.addressZip,
+             @"birth_date": license.birthDate,
+             @"document_type": license.documentType,
+             @"license_number": license.licenseNumber,
+             @"expiry_date": license.expiryDate,
+             @"issuing_date": license.issuingDate,
+             @"issuing_country": license.issuingCountry,
              };
 }
 
