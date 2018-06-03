@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -63,20 +64,39 @@ class _MyAppState extends State<MyApp> {
       child: new Center(
         child: _file == null
             ? Text('No Image')
-            : Container(
-                foregroundDecoration: TextDetectDecoration(_currentLabels),
-                child: Image.file(_file, fit: BoxFit.fitWidth),
+            : new FutureBuilder<Size>(
+                future: _getImageSize(Image.file(_file, fit: BoxFit.fitWidth)),
+                builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
+                  if (snapshot.hasData) {
+                    return Container(
+                        foregroundDecoration:
+                            TextDetectDecoration(_currentLabels, snapshot.data),
+                        child: Image.file(_file, fit: BoxFit.fitWidth));
+                  } else {
+                    return new Text('Detecting...');
+                  }
+                },
               ),
       ),
     );
   }
 
+  Future<Size> _getImageSize(Image image) {
+    Completer<Size> completer = new Completer<Size>();
+    image.image.resolve(new ImageConfiguration()).addListener(
+        (ImageInfo info, bool _) => completer.complete(
+            Size(info.image.width.toDouble(), info.image.height.toDouble())));
+    return completer.future;
+  }
+
   Widget _buildBody() {
-    return Column(
-      children: <Widget>[
-        _buildImage(),
-        _buildList(_currentLabels),
-      ],
+    return Container(
+      child: Column(
+        children: <Widget>[
+          _buildImage(),
+          _buildList(_currentLabels),
+        ],
+      ),
     );
   }
 
@@ -84,14 +104,15 @@ class _MyAppState extends State<MyApp> {
     if (texts.length == 0) {
       return Text('Empty');
     }
-    return SizedBox(
-      height: 200.0,
-      child: ListView.builder(
-          padding: const EdgeInsets.all(1.0),
-          itemCount: texts.length,
-          itemBuilder: (context, i) {
-            return _buildRow(texts[i].text);
-          }),
+    return Expanded(
+      child: Container(
+        child: ListView.builder(
+            padding: const EdgeInsets.all(1.0),
+            itemCount: texts.length,
+            itemBuilder: (context, i) {
+              return _buildRow(texts[i].text);
+            }),
+      ),
     );
   }
 
@@ -106,18 +127,24 @@ class _MyAppState extends State<MyApp> {
 }
 
 class TextDetectDecoration extends Decoration {
+  final Size _originalImageSize;
   final List<VisionText> _texts;
-  TextDetectDecoration(List<VisionText> texts) : _texts = texts;
+  TextDetectDecoration(List<VisionText> texts, Size originalImageSize)
+      : _texts = texts,
+        _originalImageSize = originalImageSize;
 
   @override
   BoxPainter createBoxPainter([VoidCallback onChanged]) {
-    return new _TextDetectPainter(_texts);
+    return new _TextDetectPainter(_texts, _originalImageSize);
   }
 }
 
 class _TextDetectPainter extends BoxPainter {
   final List<VisionText> _texts;
-  _TextDetectPainter(texts) : _texts = texts;
+  final Size _originalImageSize;
+  _TextDetectPainter(texts, originalImageSize)
+      : _texts = texts,
+        _originalImageSize = originalImageSize;
 
   @override
   void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
@@ -125,15 +152,17 @@ class _TextDetectPainter extends BoxPainter {
       ..strokeWidth = 2.0
       ..color = Colors.red
       ..style = PaintingStyle.stroke;
+    print("original Image Size : ${_originalImageSize}");
 
+    final _heightRatio = _originalImageSize.height / configuration.size.height;
+    final _widthRatio = _originalImageSize.width / configuration.size.width;
     for (var text in _texts) {
       print("text : ${text.text}, rect : ${text.rect}");
-      final _ratio = 4.9;
       final _rect = Rect.fromLTRB(
-          offset.dx + text.rect.left / _ratio,
-          offset.dy + text.rect.top / _ratio,
-          offset.dx + text.rect.right / _ratio,
-          offset.dy + text.rect.bottom / _ratio);
+          offset.dx + text.rect.left / _widthRatio,
+          offset.dy + text.rect.top / _heightRatio,
+          offset.dx + text.rect.right / _widthRatio,
+          offset.dy + text.rect.bottom / _heightRatio);
       //final _rect = Rect.fromLTRB(24.0, 115.0, 75.0, 131.2);
       print("_rect : ${_rect}");
       canvas.drawRect(_rect, paint);
