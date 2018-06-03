@@ -9,4 +9,5 @@ example/android/app/gradle/
 example/android/app/gradlew
 example/android/app/gradlew.bat
 example/android/app/local.properties
+example/ios/Podfile.lock
 *.swp
