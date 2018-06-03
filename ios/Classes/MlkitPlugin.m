@@ -4,13 +4,14 @@
 @implementation MlkitPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
     FlutterMethodChannel* channel = [FlutterMethodChannel
-                                     methodChannelWithName:@"plugins.flutter.io/firebase_mlkit/vision_text"
+                                     methodChannelWithName:@"plugins.flutter.io/mlkit"
                                      binaryMessenger:[registrar messenger]];
     MlkitPlugin* instance = [[MlkitPlugin alloc] init];
     [registrar addMethodCallDelegate:instance channel:channel];
 }
 
 FIRVisionTextDetector *textDetector;
+FIRVisionBarcodeDetector *barcodeDetector;
 
 - (instancetype)init {
     self = [super init];
@@ -25,13 +26,12 @@ FIRVisionTextDetector *textDetector;
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     FIRVision *vision = [FIRVision vision];
     NSMutableArray *ret = [NSMutableArray array];
-    
-    textDetector = [vision textDetector];
     NSString *path = call.arguments[@"filepath"];
-    
     UIImage* uiImage = [UIImage imageWithContentsOfFile:path];
     FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
-    if ([@"detectFromPath" isEqualToString:call.method]) {
+
+    if ([@"FirebaseVisionTextDetector#detectFromPath" isEqualToString:call.method]) {
+        textDetector = [vision textDetector];
         [textDetector detectInImage:image
                          completion:^(NSArray<FIRVisionText *> *features,
                                       NSError *error) {
@@ -67,6 +67,43 @@ FIRVisionTextDetector *textDetector;
                              result(ret);
                              return;
                          }];
+    } else if ([@"FirebaseVisionBarcodeDetector#detectFromPath" isEqualToString:call.method]) {
+        barcodeDetector = [vision barcodeDetector];
+        [barcodeDetector detectInImage:image
+                            completion:^(NSArray<FIRVisionBarcode *> *barcodes,
+                                         NSError *error) {
+                                if (error != nil) {
+                                    [ret addObject:error.localizedDescription];
+                                    result(ret);
+                                    return;
+                                } else if (barcodes != nil) {
+                                    // Recognized barcode
+                                    for (FIRVisionBarcode *barcode in barcodes) {
+                                        // Blocks contain lines of text
+                                        if ([barcode isKindOfClass:[FIRVisionTextBlock class]]) {
+                                            FIRVisionTextBlock *block = (FIRVisionTextBlock *)barcode;
+                                            [ret addObject:visionTextBlockToDictionary(block)];
+                                        }
+
+                                        // Lines contain text elements
+                                        else if ([barcode isKindOfClass:[FIRVisionTextLine class]]) {
+                                            FIRVisionTextLine *line = (FIRVisionTextLine *)barcode;
+                                            [ret addObject:visionTextLineToDictionary(line)];
+                                        }
+
+                                        // Text elements are typically words
+                                        else if ([barcode isKindOfClass:[FIRVisionTextElement class]]) {
+                                            FIRVisionTextElement *element = (FIRVisionTextElement *)barcode;
+                                            [ret addObject:visionTextElementToDictionary(element)];
+                                        }
+                                        else {
+                                            [ret addObject:visionTextToDictionary(barcode)];
+                                        }
+                                    }
+                                }
+                                result(ret);
+                                return;
+                            }];
     } else {
         result(FlutterMethodNotImplemented);
     }

@@ -46,14 +46,14 @@ public class MlkitPlugin implements MethodCallHandler {
    * Plugin registration.
    */
   public static void registerWith(Registrar registrar) {
-    final MethodChannel channel = new MethodChannel(registrar.messenger(), "plugins.flutter.io/firebase_mlkit/vision_text");
+    final MethodChannel channel = new MethodChannel(registrar.messenger(), "plugins.flutter.io/mlkit");
     channel.setMethodCallHandler(new MlkitPlugin());
     context = registrar.context();
   }
 
   @Override
   public void onMethodCall(MethodCall call, final Result result) {
-    if (call.method.equals("detectFromPath")) {
+    if (call.method.equals("FirebaseVisionTextDetector#detectFromPath")) {
       String path = call.argument("filepath");
       try {
         File file = new File(path);
