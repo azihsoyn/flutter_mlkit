@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,8 +13,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  File _file = File("");
-  List<VisionText> _currentLabels = List<VisionText>(0);
+  File _file;
+  List<VisionText> _currentLabels = <VisionText>[];
 
   FirebaseVisionTextDetector detector = FirebaseVisionTextDetector.instance;
 
@@ -29,19 +30,7 @@ class _MyAppState extends State<MyApp> {
         appBar: new AppBar(
           title: new Text('Plugin example app'),
         ),
-        body: _buildSuggestions(),
-        //children: <Widget>[
-        /*
-              Image.file(_file),
-              ListView.builder(
-                  padding: const EdgeInsets.all(20.0),
-                  itemBuilder: (context, i) {
-                    return new ListTile(
-                      title: new Text(_currentLabels[i]),
-                    );
-                  })
-                  */
-        //]),
+        body: _buildBody(),
         floatingActionButton: new FloatingActionButton(
           onPressed: () async {
             try {
@@ -69,39 +58,124 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Widget _buildSuggestions() {
-    return new ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        // The itemBuilder callback is called once per suggested word pairing,
-        // and places each suggestion into a ListTile row.
-        // For even rows, the function adds a ListTile row for the word pairing.
-        // For odd rows, the function adds a Divider widget to visually
-        // separate the entries. Note that the divider may be difficult
-        // to see on smaller devices.
-        itemBuilder: (context, i) {
-          // Add a one-pixel-high divider widget before each row in theListView.
-          if (i.isOdd) return new Divider();
+  Widget _buildImage() {
+    return SizedBox(
+      height: 500.0,
+      child: new Center(
+        child: _file == null
+            ? Text('No Image')
+            : new FutureBuilder<Size>(
+                future: _getImageSize(Image.file(_file, fit: BoxFit.fitWidth)),
+                builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
+                  if (snapshot.hasData) {
+                    return Container(
+                        foregroundDecoration:
+                            TextDetectDecoration(_currentLabels, snapshot.data),
+                        child: Image.file(_file, fit: BoxFit.fitWidth));
+                  } else {
+                    return new Text('Detecting...');
+                  }
+                },
+              ),
+      ),
+    );
+  }
 
-          // The syntax "i ~/ 2" divides i by 2 and returns an integer result.
-          // For example: 1, 2, 3, 4, 5 becomes 0, 1, 1, 2, 2.
-          // This calculates the actual number of word pairings in the ListView,
-          // minus the divider widgets.
-          final index = i ~/ 2;
-          // If you've reached the end of the available word pairings...
-          if (index >= _currentLabels.length) {
-            // ...then generate 10 more and add them to the suggestions list.
-            _currentLabels.addAll(_currentLabels);
-          }
-          return _buildRow(_currentLabels[index].text);
-        });
+  Future<Size> _getImageSize(Image image) {
+    Completer<Size> completer = new Completer<Size>();
+    image.image.resolve(new ImageConfiguration()).addListener(
+        (ImageInfo info, bool _) => completer.complete(
+            Size(info.image.width.toDouble(), info.image.height.toDouble())));
+    return completer.future;
+  }
+
+  Widget _buildBody() {
+    return Container(
+      child: Column(
+        children: <Widget>[
+          _buildImage(),
+          _buildList(_currentLabels),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildList(List<VisionText> texts) {
+    if (texts.length == 0) {
+      return Text('Empty');
+    }
+    return Expanded(
+      child: Container(
+        child: ListView.builder(
+            padding: const EdgeInsets.all(1.0),
+            itemCount: texts.length,
+            itemBuilder: (context, i) {
+              return _buildRow(texts[i].text);
+            }),
+      ),
+    );
   }
 
   Widget _buildRow(String text) {
-    return new ListTile(
-      title: new Text(
-        text,
-        //style: _biggerFont,
+    return ListTile(
+      title: Text(
+        "Text: ${text}",
       ),
+      dense: true,
     );
+  }
+}
+
+class TextDetectDecoration extends Decoration {
+  final Size _originalImageSize;
+  final List<VisionText> _texts;
+  TextDetectDecoration(List<VisionText> texts, Size originalImageSize)
+      : _texts = texts,
+        _originalImageSize = originalImageSize;
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback onChanged]) {
+    return new _TextDetectPainter(_texts, _originalImageSize);
+  }
+}
+
+class _TextDetectPainter extends BoxPainter {
+  final List<VisionText> _texts;
+  final Size _originalImageSize;
+  _TextDetectPainter(texts, originalImageSize)
+      : _texts = texts,
+        _originalImageSize = originalImageSize;
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final paint = new Paint()
+      ..strokeWidth = 2.0
+      ..color = Colors.red
+      ..style = PaintingStyle.stroke;
+    print("original Image Size : ${_originalImageSize}");
+
+    final _heightRatio = _originalImageSize.height / configuration.size.height;
+    final _widthRatio = _originalImageSize.width / configuration.size.width;
+    for (var text in _texts) {
+      print("text : ${text.text}, rect : ${text.rect}");
+      final _rect = Rect.fromLTRB(
+          offset.dx + text.rect.left / _widthRatio,
+          offset.dy + text.rect.top / _heightRatio,
+          offset.dx + text.rect.right / _widthRatio,
+          offset.dy + text.rect.bottom / _heightRatio);
+      //final _rect = Rect.fromLTRB(24.0, 115.0, 75.0, 131.2);
+      print("_rect : ${_rect}");
+      canvas.drawRect(_rect, paint);
+    }
+
+    print("offset : ${offset}");
+    print("configuration : ${configuration}");
+
+    final rect = offset & configuration.size;
+
+    print("rect container : ${rect}");
+
+    //canvas.drawRect(rect, paint);
+    canvas.restore();
   }
 }
