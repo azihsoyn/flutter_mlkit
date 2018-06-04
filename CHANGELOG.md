@@ -1,3 +1,7 @@
+## 0.2.1
+
+* fully support Scan barcodes on device.
+
 ## 0.2.0
 
 * support Scan barcodes (iOS only)
