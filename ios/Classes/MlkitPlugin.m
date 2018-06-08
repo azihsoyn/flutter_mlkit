@@ -26,11 +26,80 @@ FIRVisionBarcodeDetector *barcodeDetector;
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     FIRVision *vision = [FIRVision vision];
     NSMutableArray *ret = [NSMutableArray array];
-    NSString *path = call.arguments[@"filepath"];
-    UIImage* uiImage = [UIImage imageWithContentsOfFile:path];
-    FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
+    
     
     if ([@"FirebaseVisionTextDetector#detectFromPath" isEqualToString:call.method]) {
+        NSString *path = call.arguments[@"filepath"];
+        UIImage* uiImage = [UIImage imageWithContentsOfFile:path];
+        FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
+        textDetector = [vision textDetector];
+        [textDetector detectInImage:image
+                         completion:^(NSArray<FIRVisionText *> *features,
+                                      NSError *error) {
+                             if (error != nil) {
+                                 [ret addObject:error.localizedDescription];
+                                 result(ret);
+                                 return;
+                             } else if (features != nil) {
+                                 // Recognized text
+                                 for (id <FIRVisionText> feature in features) {
+                                     // Blocks contain lines of text
+                                     if ([feature isKindOfClass:[FIRVisionTextBlock class]]) {
+                                         FIRVisionTextBlock *block = (FIRVisionTextBlock *)feature;
+                                         [ret addObject:visionTextBlockToDictionary(block)];
+                                     }
+                                     
+                                     // Lines contain text elements
+                                     else if ([feature isKindOfClass:[FIRVisionTextLine class]]) {
+                                         FIRVisionTextLine *line = (FIRVisionTextLine *)feature;
+                                         [ret addObject:visionTextLineToDictionary(line)];
+                                     }
+                                     
+                                     // Text elements are typically words
+                                     else if ([feature isKindOfClass:[FIRVisionTextElement class]]) {
+                                         FIRVisionTextElement *element = (FIRVisionTextElement *)feature;
+                                         [ret addObject:visionTextElementToDictionary(element)];
+                                     }
+                                     else {
+                                         [ret addObject:visionTextToDictionary(feature)];
+                                     }
+                                 }
+                             }
+                             result(ret);
+                             return;
+                         }];
+    } else if ([@"FirebaseVisionTextDetector#detectFromBytes" isEqualToString:call.method]) {
+        textDetector = [vision textDetector];
+        
+        //NSMutableArray *bytes = [NSMutableArray array];
+        const void * bytes = (__bridge const void *)(call.arguments[@"bytes"]);
+        
+        int size = call.arguments[@"length"];
+        NSData* data = [NSData dataWithBytes:bytes length:size];
+        //NSLog(data.base64Encoding);
+        
+        if (data == nil){
+            [ret addObject:@"data is nil!!!!!!!"];
+        }
+        UIImage* uiImage = [[UIImage alloc]initWithData:data];
+        if (uiImage == nil){
+            [ret addObject:@"uiImage is nil!!!!!!!"];
+        }
+        
+        FIRVisionImage *image;
+        @try {
+            
+            image = [[FIRVisionImage alloc] initWithImage:uiImage];
+            
+            [ret addObject:@"hge"];
+            result(ret);
+            return;
+        }
+        
+        @catch (NSException *exception) {
+            NSLog(@"[ERROR]\nstr[%@]\nexception[%@]", exception);
+        }
+        
         textDetector = [vision textDetector];
         [textDetector detectInImage:image
                          completion:^(NSArray<FIRVisionText *> *features,
@@ -68,6 +137,9 @@ FIRVisionBarcodeDetector *barcodeDetector;
                              return;
                          }];
     } else if ([@"FirebaseVisionBarcodeDetector#detectFromPath" isEqualToString:call.method]) {
+        NSString *path = call.arguments[@"filepath"];
+        UIImage* uiImage = [UIImage imageWithContentsOfFile:path];
+        FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
         /*
          FIRVisionBarcodeDetectorOptions *options = [[FIRVisionBarcodeDetectorOptions alloc]
          initWithFormats: FIRVisionBarcodeFormatAll];

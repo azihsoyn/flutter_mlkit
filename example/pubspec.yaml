@@ -3,6 +3,9 @@ description: Demonstrates how to use the mlkit plugin.
 
 dependencies:
   image_picker: ^0.4.1
+  camera: ^0.2.1
+  path_provider: 0.3.0
+  video_player: "0.5.2"
   flutter:
     sdk: flutter
 
