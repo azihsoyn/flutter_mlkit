@@ -1,5 +1,9 @@
 ## 0.2.1
 
+* fix package dependency for android.
+
+## 0.2.1
+
 * fully support Scan barcodes on device.
 
 ## 0.2.0
