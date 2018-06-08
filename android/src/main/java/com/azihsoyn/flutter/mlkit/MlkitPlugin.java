@@ -111,6 +111,42 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error", e.getMessage());
         return;
       }
+    } else if (call.method.equals("FirebaseVisionTextDetector#detectFromBytes")) {
+      byte[] bytes = call.argument("bytes");
+      int width = call.argument("width");
+      int height = call.argument("height");
+      try {
+        Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        FirebaseVisionImageMetadata meta = new FirebaseVisionImageMetadata.Builder()
+                .setWidth(width)
+                .setHeight(height)
+                .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_YV12)
+                //.setRotation(rotation)
+                .build();
+        FirebaseVisionImage image = FirebaseVisionImage.fromByteArray(bytes, meta);
+        //FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
+        FirebaseVisionTextDetector detector = FirebaseVision.getInstance()
+                .getVisionTextDetector();
+        detector.detectInImage(image)
+                .addOnSuccessListener(
+                        new OnSuccessListener<FirebaseVisionText>() {
+                          @Override
+                          public void onSuccess(FirebaseVisionText texts) {
+                            result.success(processTextRecognitionResult(texts));
+                          }
+                        })
+                .addOnFailureListener(
+                        new OnFailureListener() {
+                          @Override
+                          public void onFailure(@NonNull Exception e) {
+                            // Task failed with an exception
+                            e.printStackTrace();
+                          }
+                        });
+      } catch (Exception e) {
+        Log.e("error", e.getMessage());
+        return;
+      }
     } else {
       result.notImplemented();
     }

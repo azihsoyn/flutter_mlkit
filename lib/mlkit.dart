@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
@@ -82,6 +83,30 @@ class FirebaseVisionTextDetector {
       ret.add(text);
     });
     return ret;
+  }
+
+  Future<void> detectFromBuffer(Uint8List bytes, int width, int height) async {
+    print("hoge1");
+    try {
+      print("hoge2");
+      print("size : ${bytes.length}, width : ${width}, height : ${height}");
+      List<dynamic> ret = await _channel.invokeMethod(
+          "FirebaseVisionTextDetector#detectFromBytes", {
+        'bytes': bytes,
+        'length': bytes.length,
+        'width': width,
+        'height': height
+      });
+      ret.forEach((dynamic item) {
+        print(item);
+      });
+      print("ret : ${ret}");
+      print("hoge3");
+      return;
+    } catch (e) {
+      print("hoge5");
+      print(e.toString());
+    }
   }
 }
 
