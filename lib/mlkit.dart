@@ -101,7 +101,6 @@ class FirebaseVisionBarcodeDetector {
           {'filepath': filepath});
       List<VisionBarcode> ret = [];
       barcodes.forEach((dynamic item) {
-        print("item : ${item}");
         final VisionBarcode barcode = new VisionBarcode._(item);
         ret.add(barcode);
       });
@@ -112,6 +111,119 @@ class FirebaseVisionBarcodeDetector {
     }
     return null;
   }
+}
+
+class FirebaseVisionFaceDetector {
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
+
+  static FirebaseVisionFaceDetector instance =
+      new FirebaseVisionFaceDetector._();
+
+  FirebaseVisionFaceDetector._() {}
+
+  Future<List<VisionFace>> detectFromPath(String filepath,
+      [VisionFaceDetectorOptions option]) async {
+    print(option.modeType.value);
+    print(option.modeType.toString());
+    try {
+      List<dynamic> faces = await _channel.invokeMethod(
+          "FirebaseVisionFaceDetector#detectFromPath",
+          {'filepath': filepath, 'option': option.asDictionary()});
+      List<VisionFace> ret = [];
+      faces.forEach((dynamic item) {
+        print("item : ${item}");
+        final VisionFace face = new VisionFace._(item);
+        ret.add(face);
+      });
+      return ret;
+    } catch (e) {
+      print(
+          "Error on FirebaseVisionFaceDetector#detectFromPath : ${e.toString()}");
+    }
+    return null;
+  }
+}
+
+// ios
+//   https://firebase.google.com/docs/reference/ios/firebasemlvision/api/reference/Classes/FIRVisionFaceDetectorOptions
+class VisionFaceDetectorOptions {
+  final VisionFaceDetectorClassification classificationType;
+  final VisionFaceDetectorMode modeType;
+  final VisionFaceDetectorLandmark landmarkType;
+  final double minFaceSize;
+  final bool isTrackingEnabled;
+
+  VisionFaceDetectorOptions(
+      {this.classificationType: VisionFaceDetectorClassification.None,
+      this.modeType: VisionFaceDetectorMode.Fast,
+      this.landmarkType: VisionFaceDetectorLandmark.None,
+      this.minFaceSize: 0.1,
+      this.isTrackingEnabled: false});
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "classificationType": classificationType.value,
+      "modeType": modeType.value,
+      "landmarkType": landmarkType.value,
+      "minFaceSize": minFaceSize,
+      "isTrackingEnabled": isTrackingEnabled,
+    };
+  }
+}
+
+class VisionFaceDetectorClassification {
+  final int value;
+
+  const VisionFaceDetectorClassification._(int value) : value = value;
+
+  static const None = const VisionFaceDetectorClassification._(1);
+  static const All = const VisionFaceDetectorClassification._(2);
+}
+
+class VisionFaceDetectorMode {
+  final int value;
+
+  const VisionFaceDetectorMode._(int value) : value = value;
+  static const Fast = const VisionFaceDetectorMode._(1);
+  static const Accurate = const VisionFaceDetectorMode._(2);
+}
+
+class VisionFaceDetectorLandmark {
+  final int value;
+  const VisionFaceDetectorLandmark._(int value) : value = value;
+  static const None = const VisionFaceDetectorLandmark._(1);
+  static const All = const VisionFaceDetectorLandmark._(2);
+}
+
+class VisionFace {
+  final Map<dynamic, dynamic> _data;
+
+  final Rect rect;
+  final List<Point<num>> cornerPoints;
+  final int trackingID;
+  final double headEulerAngleY;
+  final double headEulerAngleZ;
+  final double smilingProbability;
+  final double rightEyeOpenProbability;
+  final double leftEyeOpenProbability;
+  final bool hasLeftEyeOpenProbability;
+
+  VisionFace._(this._data)
+      : rect = Rect.fromLTRB(_data['rect_left'], _data['rect_top'],
+            _data['rect_right'], _data['rect_bottom']),
+        cornerPoints = _data['points'] == null
+            ? null
+            : _data['points']
+                .map<Point<num>>(
+                    (dynamic item) => Point<num>(item['x'], item['y']))
+                .toList(),
+        trackingID = _data['tracking_id'],
+        headEulerAngleY = _data['head_euler_angle_y'],
+        headEulerAngleZ = _data['head_euler_angle_z'],
+        smilingProbability = _data['smiling_probability'],
+        rightEyeOpenProbability = _data['right_eye_open_probability'],
+        leftEyeOpenProbability = _data['left_left_open_probability'];
 }
 
 // ios

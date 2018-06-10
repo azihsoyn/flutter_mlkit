@@ -12,6 +12,7 @@
 
 FIRVisionTextDetector *textDetector;
 FIRVisionBarcodeDetector *barcodeDetector;
+FIRVisionFaceDetector *faceDetector;
 
 - (instancetype)init {
     self = [super init];
@@ -85,6 +86,36 @@ FIRVisionBarcodeDetector *barcodeDetector;
                                     // Scaned barcode
                                     for (FIRVisionBarcode *barcode in barcodes) {
                                         [ret addObject:visionBarcodeToDictionary(barcode)];
+                                    }
+                                }
+                                result(ret);
+                                return;
+                            }];
+    } else if ([@"FirebaseVisionFaceDetector#detectFromPath" isEqualToString:call.method]) {
+        NSDictionary *option = call.arguments[@"option"];
+        if(call.arguments[@"option"] != [NSNull null] ){
+            FIRVisionFaceDetectorOptions *options = [[FIRVisionFaceDetectorOptions alloc] init];
+            //options.modeType = (int)option[@"modeType"];//FIRVisionFaceDetectorModeAccurate;
+            options.landmarkType =  FIRVisionFaceDetectorLandmarkAll;
+            options.classificationType = FIRVisionFaceDetectorClassificationAll;
+            options.minFaceSize = (CGFloat) 0.2f;
+            options.isTrackingEnabled = YES;
+            faceDetector = [vision faceDetectorWithOptions:options];
+        }else{
+            faceDetector = [vision faceDetector];
+        }
+        
+        [faceDetector detectInImage:image
+                            completion:^(NSArray<FIRVisionFace *> *faces,
+                                         NSError *error) {
+                                if (error != nil) {
+                                    [ret addObject:error.localizedDescription];
+                                    result(ret);
+                                    return;
+                                } else if (faces != nil) {
+                                    // Scaned barcode
+                                    for (FIRVisionFace *face in faces) {
+                                        [ret addObject:visionFaceToDictionary(face)];
                                     }
                                 }
                                 result(ret);
@@ -326,6 +357,33 @@ NSDictionary *visionBarcodeDriverLicenseToDictionary(FIRVisionBarcodeDriverLicen
              @"expiry_date": license.expiryDate,
              @"issuing_date": license.issuingDate,
              @"issuing_country": license.issuingCountry,
+             };
+}
+
+NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
+    // If landmark detection was enabled (mouth, ears, eyes, cheeks, and
+    // nose available):
+    FIRVisionFaceLandmark *leftEar = [face landmarkOfType:FIRFaceLandmarkTypeLeftEar];
+    if (leftEar != nil) {
+        FIRVisionPoint *leftEarPosition = leftEar.position;
+    }
+    return @{
+             @"rect_left": @(face.frame.origin.x),
+             @"rect_top": @(face.frame.origin.y),
+             @"rect_right": @(face.frame.origin.x + face.frame.size.width),
+             @"rect_bottom": @(face.frame.origin.y + face.frame.size.height),
+             @"has_tracking_id": @(face.hasTrackingID),
+             @"tracking_id": @(face.trackingID),
+             @"has_head_euler_angle_y": @(face.hasHeadEulerAngleY),
+             @"head_euler_angle_y": @(face.headEulerAngleY),
+             @"has_head_euler_angle_z": @(face.hasHeadEulerAngleZ),
+             @"head_euler_angle_z": @(face.headEulerAngleZ),
+             @"has_smiling_probability": @(face.hasSmilingProbability),
+             @"smiling_probability": @(face.smilingProbability),
+             @"has_right_eye_open_probability": @(face.hasRightEyeOpenProbability),
+             @"right_eye_open_probability": @(face.rightEyeOpenProbability),
+             @"has_left_eye_open_probability": @(face.hasLeftEyeOpenProbability),
+             @"left_eye_open_probability": @(face.leftEyeOpenProbability),
              };
 }
 
