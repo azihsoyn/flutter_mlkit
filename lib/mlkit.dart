@@ -584,8 +584,8 @@ class VisionLabel{
   final String label;
 
   VisionLabel._(this._data) 
-      : rect = Rect.fromLTRB(_data['rect_left'], _data['rect_top'],
-            _data['rect_right'], _data['rect_bottom']),
+      : rect = Rect.fromLTRB(_data['rect_left'] ?? 0.0, _data['rect_top'] ?? 0.0,
+            _data['rect_right'] ?? 0.0, _data['rect_bottom'] ?? 0.0),
         entityID = _data['entityID'],
         confidence = _data['confidence'],
         label = _data['label'];
