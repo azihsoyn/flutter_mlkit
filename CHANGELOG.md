@@ -1,3 +1,6 @@
+## 0.3.0
+* Added On-device Image Labeling API.
+
 ## 0.2.1
 
 * fix package dependency for android.
