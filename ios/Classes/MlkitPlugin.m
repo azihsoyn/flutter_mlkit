@@ -96,31 +96,39 @@ FIRVisionFaceDetector *faceDetector;
             FIRVisionFaceDetectorOptions *options = [[FIRVisionFaceDetectorOptions alloc] init];
             NSNumber *modeType = call.arguments[@"option"][@"modeType"];
             options.modeType = (FIRVisionFaceDetectorMode)modeType;
-            options.landmarkType =  FIRVisionFaceDetectorLandmarkAll;
-            options.classificationType = FIRVisionFaceDetectorClassificationAll;
-            options.minFaceSize = (CGFloat) 0.2f;
-            options.isTrackingEnabled = YES;
+            NSNumber *landmarkType = call.arguments[@"option"][@"landmarkType"];
+            options.landmarkType =  (FIRVisionFaceDetectorLandmark)landmarkType;
+            NSNumber *classificationType = call.arguments[@"option"][@"classificationType"];
+            options.classificationType = (FIRVisionFaceDetectorClassification)classificationType;
+            NSNumber *minFaceSize = call.arguments[@"option"][@"minFaceSize"];
+#if CGFLOAT_IS_DOUBLE
+            options.minFaceSize = [minFaceSize doubleValue];
+#else
+            options.minFaceSize = [minFaceSize floatValue];
+#endif
+            NSNumber *isTrackingEnabled = call.arguments[@"option"][@"isTrackingEnabled"];
+            options.isTrackingEnabled = [isTrackingEnabled boolValue];
             faceDetector = [vision faceDetectorWithOptions:options];
         }else{
             faceDetector = [vision faceDetector];
         }
         
         [faceDetector detectInImage:image
-                            completion:^(NSArray<FIRVisionFace *> *faces,
-                                         NSError *error) {
-                                if (error != nil) {
-                                    [ret addObject:error.localizedDescription];
-                                    result(ret);
-                                    return;
-                                } else if (faces != nil) {
-                                    // Scaned barcode
-                                    for (FIRVisionFace *face in faces) {
-                                        [ret addObject:visionFaceToDictionary(face)];
-                                    }
-                                }
-                                result(ret);
-                                return;
-                            }];
+                         completion:^(NSArray<FIRVisionFace *> *faces,
+                                      NSError *error) {
+                             if (error != nil) {
+                                 [ret addObject:error.localizedDescription];
+                                 result(ret);
+                                 return;
+                             } else if (faces != nil) {
+                                 // Scaned barcode
+                                 for (FIRVisionFace *face in faces) {
+                                     [ret addObject:visionFaceToDictionary(face)];
+                                 }
+                             }
+                             result(ret);
+                             return;
+                         }];
     } else {
         result(FlutterMethodNotImplemented);
     }
