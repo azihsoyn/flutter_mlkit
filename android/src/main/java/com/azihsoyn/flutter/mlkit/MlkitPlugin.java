@@ -111,6 +111,10 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error", e.getMessage());
         return;
       }
+    } else if (call.method.equals("Debugger#debug")) {
+      byte[] byteArray = call.argument("byte");
+      result.success(byteArray);
+      return;
     } else {
       result.notImplemented();
     }

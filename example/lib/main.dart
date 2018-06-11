@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mlkit/mlkit.dart';
 
@@ -30,7 +33,7 @@ class _MyAppState extends State<MyApp> {
         appBar: new AppBar(
           title: new Text('Plugin example app'),
         ),
-        body: _buildBody(),
+        body: PngHome(),
         floatingActionButton: new FloatingActionButton(
           onPressed: () async {
             try {
@@ -122,6 +125,40 @@ class _MyAppState extends State<MyApp> {
         "Text: ${text}",
       ),
       dense: true,
+    );
+  }
+}
+
+class PngHome extends StatefulWidget {
+  PngHome({Key key}) : super(key: key);
+
+  @override
+  _PngHomeState createState() => new _PngHomeState();
+}
+
+class _PngHomeState extends State<PngHome> {
+  GlobalKey globalKey = new GlobalKey();
+
+  Future<void> _capturePng() async {
+    RenderRepaintBoundary boundary =
+        globalKey.currentContext.findRenderObject();
+    ui.Image image = await boundary.toImage();
+    ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    Uint8List pngBytes = byteData.buffer.asUint8List();
+    print(pngBytes);
+    Debugger.instance.debug(byteData);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      key: globalKey,
+      child: Center(
+        child: FlatButton(
+          child: Text('Hello World', textDirection: TextDirection.ltr),
+          onPressed: _capturePng,
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
@@ -61,6 +62,25 @@ class FirebaseMlkit {
 
   FirebaseVisionTextDetector getVisionTextDetector() {
     return FirebaseVisionTextDetector.instance;
+  }
+}
+
+class Debugger {
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
+
+  static Debugger instance = new Debugger._();
+
+  Debugger._() {}
+
+  Future<void> debug(ByteData bytes) async {
+    try {
+      dynamic ret =
+          await _channel.invokeMethod("Debugger#debug", {'byte': bytes});
+      print(ret);
+    } catch (e) {
+      print(e.toString());
+    }
   }
 }
 
