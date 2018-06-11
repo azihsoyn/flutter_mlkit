@@ -92,10 +92,10 @@ FIRVisionFaceDetector *faceDetector;
                                 return;
                             }];
     } else if ([@"FirebaseVisionFaceDetector#detectFromPath" isEqualToString:call.method]) {
-        NSDictionary *option = call.arguments[@"option"];
         if(call.arguments[@"option"] != [NSNull null] ){
             FIRVisionFaceDetectorOptions *options = [[FIRVisionFaceDetectorOptions alloc] init];
-            //options.modeType = (int)option[@"modeType"];//FIRVisionFaceDetectorModeAccurate;
+            NSNumber *modeType = call.arguments[@"option"][@"modeType"];
+            options.modeType = (FIRVisionFaceDetectorMode)modeType;
             options.landmarkType =  FIRVisionFaceDetectorLandmarkAll;
             options.classificationType = FIRVisionFaceDetectorClassificationAll;
             options.minFaceSize = (CGFloat) 0.2f;
