@@ -114,6 +114,34 @@ class FirebaseVisionBarcodeDetector {
   }
 }
 
+class FirebaseVisionLabelDetector {
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
+
+  static FirebaseVisionLabelDetector instance =
+      new FirebaseVisionLabelDetector._();
+
+  FirebaseVisionLabelDetector._() {}
+
+  Future<List<VisionLabel>> detectFromPath(String filepath) async {
+    try {
+      List<dynamic> labels = await _channel.invokeMethod(
+          "FirebaseVisionLabelDetector#detectFromPath",
+          {'filepath': filepath});
+      List<VisionLabel> ret = [];
+      labels.forEach((dynamic item) {
+        print("item : ${item}");
+        final VisionLabel label = new VisionLabel._(item);
+        ret.add(label);
+      });
+      return ret;
+    } catch (e) {
+      print(
+          "Error on FirebaseVisionLabelDetector#detectFromPath : ${e.toString()}");
+    }
+    return null;
+  }
+}
 // ios
 //   https://firebase.google.com/docs/reference/ios/firebasemlvision/api/reference/Classes/FIRVisionBarcode
 // android
@@ -544,4 +572,21 @@ class VisionBarcodeDriverLicense {
   final String expiryDate;
   final String issuingDate;
   final String issuingCountry;
+}
+
+// ios
+// https://firebase.google.com/docs/reference/swift/firebasemlvision/api/reference/Classes/VisionLabel
+class VisionLabel{
+  final Map<dynamic,dynamic> _data;
+  final Rect rect;
+  final String entityID;
+  final double confidence;
+  final String label;
+
+  VisionLabel._(this._data) 
+      : rect = Rect.fromLTRB(_data['rect_left'], _data['rect_top'],
+            _data['rect_right'], _data['rect_bottom']),
+        entityID = _data['entityID'],
+        confidence = _data['confidence'],
+        label = _data['label'];
 }

@@ -12,6 +12,7 @@
 
 FIRVisionTextDetector *textDetector;
 FIRVisionBarcodeDetector *barcodeDetector;
+FIRVisionLabelDetector *labelDetector;
 
 - (instancetype)init {
     self = [super init];
@@ -90,7 +91,25 @@ FIRVisionBarcodeDetector *barcodeDetector;
                                 result(ret);
                                 return;
                             }];
-    } else {
+    } else if ([@"FirebaseVisionLabelDetector#detectFromPath" isEqualToString:call.method]){
+
+        labelDetector = [vision labelDetector];
+        [labelDetector detectInImage:(FIRVisionImage *)image
+           completion:^(NSArray<FIRVisionLabel *> *labels,
+                        NSError *error){
+               if(error != nil){
+                   [ret addObject:error.localizedDescription];
+                   result(ret);
+                   return;
+               } else if(labels != nil){
+                   for (FIRVisionLabel *label in labels){
+                       [ret addObject:visionLabelToDictionary(label)];
+                   } 
+               }
+                result(ret);
+                return;
+           }];
+    }else {
         result(FlutterMethodNotImplemented);
     }
 }
@@ -327,6 +346,17 @@ NSDictionary *visionBarcodeDriverLicenseToDictionary(FIRVisionBarcodeDriverLicen
              @"issuing_date": license.issuingDate,
              @"issuing_country": license.issuingCountry,
              };
+}
+
+NSDictionary *visionLabelToDictionary(FIRVisionLabel *label){
+    return @{@"label" : label.label,
+             @"entityID" : label.entityID,
+             @"confidence" : [NSNumber numberWithFloat:label.confidence],
+             @"rect_left": @(label.frame.origin.x),
+             @"rect_top": @(label.frame.origin.y),
+             @"rect_right": @(label.frame.origin.x + label.frame.size.width),
+             @"rect_bottom": @(label.frame.origin.y + label.frame.size.height),
+    };
 }
 
 @end
