@@ -97,9 +97,9 @@ FIRVisionFaceDetector *faceDetector;
             NSNumber *modeType = call.arguments[@"option"][@"modeType"];
             options.modeType = (FIRVisionFaceDetectorMode)modeType;
             NSNumber *landmarkType = call.arguments[@"option"][@"landmarkType"];
-            options.landmarkType =  (FIRVisionFaceDetectorLandmark)landmarkType;
+            options.landmarkType =  (FIRVisionFaceDetectorLandmark)landmarkType.unsignedIntegerValue;
             NSNumber *classificationType = call.arguments[@"option"][@"classificationType"];
-            options.classificationType = (FIRVisionFaceDetectorClassification)classificationType;
+            options.classificationType = (FIRVisionFaceDetectorClassification)classificationType.unsignedIntegerValue;
             NSNumber *minFaceSize = call.arguments[@"option"][@"minFaceSize"];
 #if CGFLOAT_IS_DOUBLE
             options.minFaceSize = [minFaceSize doubleValue];
@@ -369,12 +369,33 @@ NSDictionary *visionBarcodeDriverLicenseToDictionary(FIRVisionBarcodeDriverLicen
 }
 
 NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
-    // If landmark detection was enabled (mouth, ears, eyes, cheeks, and
-    // nose available):
-    FIRVisionFaceLandmark *leftEar = [face landmarkOfType:FIRFaceLandmarkTypeLeftEar];
-    if (leftEar != nil) {
-        FIRVisionPoint *leftEarPosition = leftEar.position;
-    }
+    NSArray *types = @[
+                       FIRFaceLandmarkTypeMouthBottom,
+                       FIRFaceLandmarkTypeMouthRight,
+                       FIRFaceLandmarkTypeMouthLeft,
+                       FIRFaceLandmarkTypeLeftEar,
+                       FIRFaceLandmarkTypeRightEar,
+                       FIRFaceLandmarkTypeLeftEye,
+                       FIRFaceLandmarkTypeRightEye,
+                       FIRFaceLandmarkTypeLeftCheek,
+                       FIRFaceLandmarkTypeRightCheek,
+                       FIRFaceLandmarkTypeNoseBase,
+                       ];
+    __block NSMutableDictionary *landmarks = [NSMutableDictionary dictionary];
+    [types enumerateObjectsUsingBlock:^(NSString * _Nonnull type, NSUInteger idx, BOOL * _Nonnull stop) {
+        FIRVisionFaceLandmark *landmark = [face landmarkOfType:type];
+        if(landmark != nil){
+            NSDictionary *_landmark =@{
+                                       @"position": @{
+                                               @"x": landmark.position.x,
+                                               @"y": landmark.position.y,
+                                               @"z": landmark.position.z ? landmark.position.z : [NSNull null],
+                                               },
+                                       @"type": landmark.type,
+                                       };
+            [landmarks setObject:_landmark forKey:type];
+        }
+    }];
     return @{
              @"rect_left": @(face.frame.origin.x),
              @"rect_top": @(face.frame.origin.y),
@@ -392,6 +413,7 @@ NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
              @"right_eye_open_probability": @(face.rightEyeOpenProbability),
              @"has_left_eye_open_probability": @(face.hasLeftEyeOpenProbability),
              @"left_eye_open_probability": @(face.leftEyeOpenProbability),
+             @"landmarks": landmarks,
              };
 }
 

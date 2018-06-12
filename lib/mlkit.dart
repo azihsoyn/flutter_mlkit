@@ -124,12 +124,12 @@ class FirebaseVisionFaceDetector {
 
   Future<List<VisionFace>> detectFromPath(String filepath,
       [VisionFaceDetectorOptions option]) async {
-    print(option.modeType.value);
-    print(option.modeType.toString());
     try {
-      List<dynamic> faces = await _channel.invokeMethod(
-          "FirebaseVisionFaceDetector#detectFromPath",
-          {'filepath': filepath, 'option': option.asDictionary()});
+      List<dynamic> faces = await _channel
+          .invokeMethod("FirebaseVisionFaceDetector#detectFromPath", {
+        'filepath': filepath,
+        'option': option.asDictionary(),
+      });
       List<VisionFace> ret = [];
       faces.forEach((dynamic item) {
         print("item : ${item}");
@@ -196,6 +196,44 @@ class VisionFaceDetectorLandmark {
   static const All = const VisionFaceDetectorLandmark._(2);
 }
 
+class VisionFaceLandmark {
+  final FaceLandmarkType type;
+  final VisionPoint position;
+
+  VisionFaceLandmark._(Map<dynamic, dynamic> data)
+      : type = FaceLandmarkType._(data['type']),
+        position = VisionPoint._(data['position']);
+}
+
+// ios
+//   https://firebase.google.com/docs/reference/ios/firebasemlvision/api/reference/Classes/FIRVisionPoint
+class VisionPoint {
+  final double x;
+  final double y;
+  final double z;
+
+  VisionPoint._(Map<dynamic, dynamic> data)
+      : x = data['x'],
+        y = data['y'],
+        z = data['z'] ?? null;
+}
+
+class FaceLandmarkType {
+  final String value;
+
+  const FaceLandmarkType._(String value) : value = value;
+  static const MouthBottom = const FaceLandmarkType._("MouthBottom");
+  static const MouthRight = const FaceLandmarkType._("MouthRight");
+  static const MouthLeft = const FaceLandmarkType._("MouthLeft");
+  static const LeftEar = const FaceLandmarkType._("LeftEar");
+  static const RightEar = const FaceLandmarkType._("RightEar");
+  static const LeftEye = const FaceLandmarkType._("LeftEye");
+  static const RightEye = const FaceLandmarkType._("RightEye");
+  static const LeftCheek = const FaceLandmarkType._("LeftCheek");
+  static const RightCheek = const FaceLandmarkType._("RightCheek");
+  static const NoseBase = const FaceLandmarkType._("NoseBase");
+}
+
 class VisionFace {
   final Map<dynamic, dynamic> _data;
 
@@ -224,6 +262,11 @@ class VisionFace {
         smilingProbability = _data['smiling_probability'],
         rightEyeOpenProbability = _data['right_eye_open_probability'],
         leftEyeOpenProbability = _data['left_left_open_probability'];
+
+  VisionFaceLandmark getLandmark(FaceLandmarkType type) =>
+      _data['landmarks'][type.value] == null
+          ? null
+          : VisionFaceLandmark._(_data['landmarks'][type.value]);
 }
 
 // ios
