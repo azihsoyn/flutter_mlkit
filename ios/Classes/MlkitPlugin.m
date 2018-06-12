@@ -8,11 +8,28 @@
                                      binaryMessenger:[registrar messenger]];
     MlkitPlugin* instance = [[MlkitPlugin alloc] init];
     [registrar addMethodCallDelegate:instance channel:channel];
+    landmarkTypeMap = @{
+                        @0:FIRFaceLandmarkTypeMouthBottom,
+                        @1:FIRFaceLandmarkTypeLeftCheek,
+                        @3:FIRFaceLandmarkTypeLeftEar,
+                        @4:FIRFaceLandmarkTypeLeftEye,
+                        @5:FIRFaceLandmarkTypeMouthLeft,
+                        @6:FIRFaceLandmarkTypeNoseBase,
+                        @7:FIRFaceLandmarkTypeRightCheek,
+                        @9:FIRFaceLandmarkTypeRightEar,
+                        @10:FIRFaceLandmarkTypeRightEye,
+                        @11:FIRFaceLandmarkTypeMouthRight,
+                        };
 }
 
 FIRVisionTextDetector *textDetector;
 FIRVisionBarcodeDetector *barcodeDetector;
+FIRVisionFaceDetector *faceDetector;
 FIRVisionLabelDetector *labelDetector;
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/face/FirebaseVisionFaceLandmark#BOTTOM_MOUTH
+NSDictionary *landmarkTypeMap;
 
 - (instancetype)init {
     self = [super init];
@@ -91,24 +108,61 @@ FIRVisionLabelDetector *labelDetector;
                                 result(ret);
                                 return;
                             }];
-    } else if ([@"FirebaseVisionLabelDetector#detectFromPath" isEqualToString:call.method]){
+    } else if ([@"FirebaseVisionFaceDetector#detectFromPath" isEqualToString:call.method]) {
+        if(call.arguments[@"option"] != [NSNull null] ){
+            FIRVisionFaceDetectorOptions *options = [[FIRVisionFaceDetectorOptions alloc] init];
+            NSNumber *modeType = call.arguments[@"option"][@"modeType"];
+            options.modeType = (FIRVisionFaceDetectorMode)modeType;
+            NSNumber *landmarkType = call.arguments[@"option"][@"landmarkType"];
+            options.landmarkType =  (FIRVisionFaceDetectorLandmark)landmarkType.unsignedIntegerValue;
+            NSNumber *classificationType = call.arguments[@"option"][@"classificationType"];
+            options.classificationType = (FIRVisionFaceDetectorClassification)classificationType.unsignedIntegerValue;
+            NSNumber *minFaceSize = call.arguments[@"option"][@"minFaceSize"];
+#if CGFLOAT_IS_DOUBLE
+            options.minFaceSize = [minFaceSize doubleValue];
+#else
+            options.minFaceSize = [minFaceSize floatValue];
+#endif
+            NSNumber *isTrackingEnabled = call.arguments[@"option"][@"isTrackingEnabled"];
+            options.isTrackingEnabled = [isTrackingEnabled boolValue];
+            faceDetector = [vision faceDetectorWithOptions:options];
+        }else{
+            faceDetector = [vision faceDetector];
+        }
 
+        [faceDetector detectInImage:image
+                         completion:^(NSArray<FIRVisionFace *> *faces,
+                                      NSError *error) {
+                             if (error != nil) {
+                                 [ret addObject:error.localizedDescription];
+                                 result(ret);
+                                 return;
+                             } else if (faces != nil) {
+                                 // Scaned barcode
+                                 for (FIRVisionFace *face in faces) {
+                                     [ret addObject:visionFaceToDictionary(face)];
+                                 }
+                             }
+                             result(ret);
+                             return;
+                         }];
+    } else if ([@"FirebaseVisionLabelDetector#detectFromPath" isEqualToString:call.method]){
         labelDetector = [vision labelDetector];
         [labelDetector detectInImage:(FIRVisionImage *)image
-           completion:^(NSArray<FIRVisionLabel *> *labels,
-                        NSError *error){
-               if(error != nil){
-                   [ret addObject:error.localizedDescription];
-                   result(ret);
-                   return;
-               } else if(labels != nil){
-                   for (FIRVisionLabel *label in labels){
-                       [ret addObject:visionLabelToDictionary(label)];
-                   } 
-               }
-                result(ret);
-                return;
-           }];
+                          completion:^(NSArray<FIRVisionLabel *> *labels,
+                                       NSError *error){
+                              if(error != nil){
+                                  [ret addObject:error.localizedDescription];
+                                  result(ret);
+                                  return;
+                              } else if(labels != nil){
+                                  for (FIRVisionLabel *label in labels){
+                                      [ret addObject:visionLabelToDictionary(label)];
+                                  }
+                              }
+                              result(ret);
+                              return;
+                          }];
     }else {
         result(FlutterMethodNotImplemented);
     }
@@ -348,6 +402,43 @@ NSDictionary *visionBarcodeDriverLicenseToDictionary(FIRVisionBarcodeDriverLicen
              };
 }
 
+NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
+    __block NSMutableDictionary *landmarks = [NSMutableDictionary dictionary];
+    for (id key in landmarkTypeMap){
+        FIRVisionFaceLandmark *landmark = [face landmarkOfType:landmarkTypeMap[key]];
+        if(landmark != nil){
+            NSDictionary *_landmark =@{
+                                       @"position": @{
+                                               @"x": landmark.position.x,
+                                               @"y": landmark.position.y,
+                                               @"z": landmark.position.z ? landmark.position.z : [NSNull null],
+                                               },
+                                       @"type": key,
+                                       };
+            [landmarks setObject:_landmark forKey:key];
+        }
+    }
+    return @{
+             @"rect_left": @(face.frame.origin.x),
+             @"rect_top": @(face.frame.origin.y),
+             @"rect_right": @(face.frame.origin.x + face.frame.size.width),
+             @"rect_bottom": @(face.frame.origin.y + face.frame.size.height),
+             @"has_tracking_id": @(face.hasTrackingID),
+             @"tracking_id": @(face.trackingID),
+             @"has_head_euler_angle_y": @(face.hasHeadEulerAngleY),
+             @"head_euler_angle_y": @(face.headEulerAngleY),
+             @"has_head_euler_angle_z": @(face.hasHeadEulerAngleZ),
+             @"head_euler_angle_z": @(face.headEulerAngleZ),
+             @"has_smiling_probability": @(face.hasSmilingProbability),
+             @"smiling_probability": @(face.smilingProbability),
+             @"has_right_eye_open_probability": @(face.hasRightEyeOpenProbability),
+             @"right_eye_open_probability": @(face.rightEyeOpenProbability),
+             @"has_left_eye_open_probability": @(face.hasLeftEyeOpenProbability),
+             @"left_eye_open_probability": @(face.leftEyeOpenProbability),
+             @"landmarks": landmarks,
+             };
+}
+
 NSDictionary *visionLabelToDictionary(FIRVisionLabel *label){
     return @{@"label" : label.label,
              @"entityID" : label.entityID,
@@ -356,7 +447,7 @@ NSDictionary *visionLabelToDictionary(FIRVisionLabel *label){
              @"rect_top": @(label.frame.origin.y),
              @"rect_right": @(label.frame.origin.x + label.frame.size.width),
              @"rect_bottom": @(label.frame.origin.y + label.frame.size.height),
-    };
+             };
 }
 
 @end
