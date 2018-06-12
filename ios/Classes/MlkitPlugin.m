@@ -25,6 +25,7 @@
 FIRVisionTextDetector *textDetector;
 FIRVisionBarcodeDetector *barcodeDetector;
 FIRVisionFaceDetector *faceDetector;
+FIRVisionLabelDetector *labelDetector;
 
 // android
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/face/FirebaseVisionFaceLandmark#BOTTOM_MOUTH
@@ -128,7 +129,7 @@ NSDictionary *landmarkTypeMap;
         }else{
             faceDetector = [vision faceDetector];
         }
-        
+
         [faceDetector detectInImage:image
                          completion:^(NSArray<FIRVisionFace *> *faces,
                                       NSError *error) {
@@ -145,7 +146,24 @@ NSDictionary *landmarkTypeMap;
                              result(ret);
                              return;
                          }];
-    } else {
+    } else if ([@"FirebaseVisionLabelDetector#detectFromPath" isEqualToString:call.method]){
+        labelDetector = [vision labelDetector];
+        [labelDetector detectInImage:(FIRVisionImage *)image
+                          completion:^(NSArray<FIRVisionLabel *> *labels,
+                                       NSError *error){
+                              if(error != nil){
+                                  [ret addObject:error.localizedDescription];
+                                  result(ret);
+                                  return;
+                              } else if(labels != nil){
+                                  for (FIRVisionLabel *label in labels){
+                                      [ret addObject:visionLabelToDictionary(label)];
+                                  }
+                              }
+                              result(ret);
+                              return;
+                          }];
+    }else {
         result(FlutterMethodNotImplemented);
     }
 }
@@ -418,6 +436,17 @@ NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
              @"has_left_eye_open_probability": @(face.hasLeftEyeOpenProbability),
              @"left_eye_open_probability": @(face.leftEyeOpenProbability),
              @"landmarks": landmarks,
+             };
+}
+
+NSDictionary *visionLabelToDictionary(FIRVisionLabel *label){
+    return @{@"label" : label.label,
+             @"entityID" : label.entityID,
+             @"confidence" : [NSNumber numberWithFloat:label.confidence],
+             @"rect_left": @(label.frame.origin.x),
+             @"rect_top": @(label.frame.origin.y),
+             @"rect_right": @(label.frame.origin.x + label.frame.size.width),
+             @"rect_bottom": @(label.frame.origin.y + label.frame.size.height),
              };
 }
 

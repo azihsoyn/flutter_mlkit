@@ -28,7 +28,8 @@ import com.google.firebase.ml.vision.cloud.text.FirebaseVisionCloudText;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
-
+import com.google.firebase.ml.vision.label.FirebaseVisionLabel;
+import com.google.firebase.ml.vision.label.FirebaseVisionLabelDetector;
 import android.graphics.Bitmap;
 import android.media.Image;
 import java.io.IOException;
@@ -111,7 +112,34 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error", e.getMessage());
         return;
       }
-    } else {
+    } else if (call.method.equals("FirebaseVisionLabelDetector#detectFromPath")){
+      String path = call.argument("filepath");
+      try {
+        File file = new File(path);
+        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
+        FirebaseVisionLabelDetector detector = FirebaseVision.getInstance()
+                .getVisionLabelDetector();
+        detector.detectInImage(image)
+                .addOnSuccessListener(
+                        new OnSuccessListener<List<FirebaseVisionLabel>>() {
+                          @Override
+                          public void onSuccess(List<FirebaseVisionLabel> labels) {
+                            result.success(processImageLabelingResult(labels));
+                          }
+                        })
+                .addOnFailureListener(
+                        new OnFailureListener() {
+                          @Override
+                          public void onFailure(@NonNull Exception e) {
+                            // Task failed with an exception
+                            e.printStackTrace();
+                          }
+                        });
+      }catch (IOException e){
+        Log.e("error",e.getMessage());
+        return;
+      }
+    }else {
       result.notImplemented();
     }
   }
@@ -333,6 +361,24 @@ public class MlkitPlugin implements MethodCallHandler {
       blockBuilder.put("lines", linesBuilder.build());
       dataBuilder.add(blockBuilder.build());
     }
+    return dataBuilder.build();
+  }
+
+
+   private ImmutableList<ImmutableMap<String, Object>> processImageLabelingResult(List<FirebaseVisionLabel> labels) {
+    ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
+            ImmutableList.<ImmutableMap<String, Object>>builder();
+
+    for (FirebaseVisionLabel label: labels) {
+      ImmutableMap.Builder<String, Object> labelBuilder = ImmutableMap.<String, Object>builder();
+
+      labelBuilder.put("label", label.getLabel());
+      labelBuilder.put("entityID", label.getEntityId());
+      labelBuilder.put("confidence", label.getConfidence());
+
+      dataBuilder.add(labelBuilder.build());
+    }
+
     return dataBuilder.build();
   }
 }
