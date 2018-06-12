@@ -1,4 +1,9 @@
+## 0.4.0
+
+* Added On-device Face detecting API (iOS only).
+
 ## 0.3.0
+
 * Added On-device Image Labeling API.
 
 ## 0.2.2
