@@ -132,7 +132,6 @@ class FirebaseVisionFaceDetector {
       });
       List<VisionFace> ret = [];
       faces.forEach((dynamic item) {
-        print("item : ${item}");
         final VisionFace face = new VisionFace._(item);
         ret.add(face);
       });
@@ -218,20 +217,22 @@ class VisionPoint {
         z = data['z'] ?? null;
 }
 
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/face/FirebaseVisionFaceLandmark
 class FaceLandmarkType {
-  final String value;
+  final int value;
 
-  const FaceLandmarkType._(String value) : value = value;
-  static const MouthBottom = const FaceLandmarkType._("MouthBottom");
-  static const MouthRight = const FaceLandmarkType._("MouthRight");
-  static const MouthLeft = const FaceLandmarkType._("MouthLeft");
-  static const LeftEar = const FaceLandmarkType._("LeftEar");
-  static const RightEar = const FaceLandmarkType._("RightEar");
-  static const LeftEye = const FaceLandmarkType._("LeftEye");
-  static const RightEye = const FaceLandmarkType._("RightEye");
-  static const LeftCheek = const FaceLandmarkType._("LeftCheek");
-  static const RightCheek = const FaceLandmarkType._("RightCheek");
-  static const NoseBase = const FaceLandmarkType._("NoseBase");
+  const FaceLandmarkType._(int value) : value = value;
+  static const BottomMouth = const FaceLandmarkType._(0);
+  static const LeftCheek = const FaceLandmarkType._(1);
+  static const LeftEar = const FaceLandmarkType._(3);
+  static const LeftEye = const FaceLandmarkType._(4);
+  static const LeftMouth = const FaceLandmarkType._(5);
+  static const NoseBase = const FaceLandmarkType._(6);
+  static const RightCheek = const FaceLandmarkType._(7);
+  static const RightEar = const FaceLandmarkType._(9);
+  static const RightEye = const FaceLandmarkType._(10);
+  static const RightMouth = const FaceLandmarkType._(11);
 }
 
 class VisionFace {

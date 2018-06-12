@@ -8,11 +8,27 @@
                                      binaryMessenger:[registrar messenger]];
     MlkitPlugin* instance = [[MlkitPlugin alloc] init];
     [registrar addMethodCallDelegate:instance channel:channel];
+    landmarkTypeMap = @{
+                        @0:FIRFaceLandmarkTypeMouthBottom,
+                        @1:FIRFaceLandmarkTypeLeftCheek,
+                        @3:FIRFaceLandmarkTypeLeftEar,
+                        @4:FIRFaceLandmarkTypeLeftEye,
+                        @5:FIRFaceLandmarkTypeMouthLeft,
+                        @6:FIRFaceLandmarkTypeNoseBase,
+                        @7:FIRFaceLandmarkTypeRightCheek,
+                        @9:FIRFaceLandmarkTypeRightEar,
+                        @10:FIRFaceLandmarkTypeRightEye,
+                        @11:FIRFaceLandmarkTypeMouthRight,
+                        };
 }
 
 FIRVisionTextDetector *textDetector;
 FIRVisionBarcodeDetector *barcodeDetector;
 FIRVisionFaceDetector *faceDetector;
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/face/FirebaseVisionFaceLandmark#BOTTOM_MOUTH
+NSDictionary *landmarkTypeMap;
 
 - (instancetype)init {
     self = [super init];
@@ -369,21 +385,9 @@ NSDictionary *visionBarcodeDriverLicenseToDictionary(FIRVisionBarcodeDriverLicen
 }
 
 NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
-    NSArray *types = @[
-                       FIRFaceLandmarkTypeMouthBottom,
-                       FIRFaceLandmarkTypeMouthRight,
-                       FIRFaceLandmarkTypeMouthLeft,
-                       FIRFaceLandmarkTypeLeftEar,
-                       FIRFaceLandmarkTypeRightEar,
-                       FIRFaceLandmarkTypeLeftEye,
-                       FIRFaceLandmarkTypeRightEye,
-                       FIRFaceLandmarkTypeLeftCheek,
-                       FIRFaceLandmarkTypeRightCheek,
-                       FIRFaceLandmarkTypeNoseBase,
-                       ];
     __block NSMutableDictionary *landmarks = [NSMutableDictionary dictionary];
-    [types enumerateObjectsUsingBlock:^(NSString * _Nonnull type, NSUInteger idx, BOOL * _Nonnull stop) {
-        FIRVisionFaceLandmark *landmark = [face landmarkOfType:type];
+    for (id key in landmarkTypeMap){
+        FIRVisionFaceLandmark *landmark = [face landmarkOfType:landmarkTypeMap[key]];
         if(landmark != nil){
             NSDictionary *_landmark =@{
                                        @"position": @{
@@ -391,11 +395,11 @@ NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
                                                @"y": landmark.position.y,
                                                @"z": landmark.position.z ? landmark.position.z : [NSNull null],
                                                },
-                                       @"type": landmark.type,
+                                       @"type": key,
                                        };
-            [landmarks setObject:_landmark forKey:type];
+            [landmarks setObject:_landmark forKey:key];
         }
-    }];
+    }
     return @{
              @"rect_left": @(face.frame.origin.x),
              @"rect_top": @(face.frame.origin.y),
