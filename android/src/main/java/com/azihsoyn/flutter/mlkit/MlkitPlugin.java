@@ -31,6 +31,7 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
+import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabel;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabelDetector;
 import android.graphics.Bitmap;
@@ -158,11 +159,27 @@ public class MlkitPlugin implements MethodCallHandler {
       }
     } else if (call.method.equals("FirebaseVisionFaceDetector#detectFromPath")){
       String path = call.argument("filepath");
+
       try {
         File file = new File(path);
         FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
-        FirebaseVisionFaceDetector detector = FirebaseVision.getInstance()
-                .getVisionFaceDetector();
+        FirebaseVisionFaceDetector detector;
+        if (call.argument("option") != null) {
+          Map<String, Object> optionsMap = call.argument("option");
+          FirebaseVisionFaceDetectorOptions options =
+                  new FirebaseVisionFaceDetectorOptions.Builder()
+                          .setModeType((int)optionsMap.get("modeType"))
+                          .setLandmarkType((int)optionsMap.get("landmarkType"))
+                          .setClassificationType((int)optionsMap.get("classificationType"))
+                          .setMinFaceSize((float)(double)optionsMap.get("minFaceSize"))
+                          .setTrackingEnabled((boolean)optionsMap.get("isTrackingEnabled"))
+                          .build();
+          detector = FirebaseVision.getInstance()
+                  .getVisionFaceDetector(options);
+        } else {
+          detector = FirebaseVision.getInstance()
+                  .getVisionFaceDetector();
+        }
         detector.detectInImage(image)
                 .addOnSuccessListener(
                         new OnSuccessListener<List<FirebaseVisionFace>>() {
@@ -432,7 +449,9 @@ public class MlkitPlugin implements MethodCallHandler {
         if(landmark != null) {
           positionkBuilder.put("x", landmark.getPosition().getX());
           positionkBuilder.put("y", landmark.getPosition().getY());
-          positionkBuilder.put("z", landmark.getPosition().getZ());
+          if(landmark.getPosition().getZ() != null) {
+            positionkBuilder.put("z", landmark.getPosition().getZ());
+          }
           landmarkBuilder.put("position", positionkBuilder.build());
           landmarkBuilder.put("type", landmarkType);
           landmarksBuilder.put(landmarkType, landmarkBuilder.build());
