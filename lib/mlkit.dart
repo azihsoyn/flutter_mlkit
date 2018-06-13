@@ -128,10 +128,11 @@ class FirebaseVisionFaceDetector {
       List<dynamic> faces = await _channel
           .invokeMethod("FirebaseVisionFaceDetector#detectFromPath", {
         'filepath': filepath,
-        'option': option.asDictionary(),
+        'option': option?.asDictionary(),
       });
       List<VisionFace> ret = [];
       faces.forEach((dynamic item) {
+        print("item : ${item}");
         final VisionFace face = new VisionFace._(item);
         ret.add(face);
       });
@@ -156,8 +157,7 @@ class FirebaseVisionLabelDetector {
   Future<List<VisionLabel>> detectFromPath(String filepath) async {
     try {
       List<dynamic> labels = await _channel.invokeMethod(
-          "FirebaseVisionLabelDetector#detectFromPath",
-          {'filepath': filepath});
+          "FirebaseVisionLabelDetector#detectFromPath", {'filepath': filepath});
       List<VisionLabel> ret = [];
       labels.forEach((dynamic item) {
         print("item : ${item}");
@@ -268,7 +268,6 @@ class VisionFace {
   final Map<dynamic, dynamic> _data;
 
   final Rect rect;
-  final List<Point<num>> cornerPoints;
   final int trackingID;
   final double headEulerAngleY;
   final double headEulerAngleZ;
@@ -280,18 +279,12 @@ class VisionFace {
   VisionFace._(this._data)
       : rect = Rect.fromLTRB(_data['rect_left'], _data['rect_top'],
             _data['rect_right'], _data['rect_bottom']),
-        cornerPoints = _data['points'] == null
-            ? null
-            : _data['points']
-                .map<Point<num>>(
-                    (dynamic item) => Point<num>(item['x'], item['y']))
-                .toList(),
         trackingID = _data['tracking_id'],
         headEulerAngleY = _data['head_euler_angle_y'],
         headEulerAngleZ = _data['head_euler_angle_z'],
         smilingProbability = _data['smiling_probability'],
         rightEyeOpenProbability = _data['right_eye_open_probability'],
-        leftEyeOpenProbability = _data['left_left_open_probability'];
+        leftEyeOpenProbability = _data['left_eye_open_probability'];
 
   VisionFaceLandmark getLandmark(FaceLandmarkType type) =>
       _data['landmarks'][type.value] == null
@@ -733,16 +726,19 @@ class VisionBarcodeDriverLicense {
 
 // ios
 // https://firebase.google.com/docs/reference/swift/firebasemlvision/api/reference/Classes/VisionLabel
-class VisionLabel{
-  final Map<dynamic,dynamic> _data;
+class VisionLabel {
+  final Map<dynamic, dynamic> _data;
   final Rect rect;
   final String entityID;
   final double confidence;
   final String label;
 
-  VisionLabel._(this._data) 
-      : rect = Rect.fromLTRB(_data['rect_left'] ?? 0.0, _data['rect_top'] ?? 0.0,
-            _data['rect_right'] ?? 0.0, _data['rect_bottom'] ?? 0.0),
+  VisionLabel._(this._data)
+      : rect = Rect.fromLTRB(
+            _data['rect_left'] ?? 0.0,
+            _data['rect_top'] ?? 0.0,
+            _data['rect_right'] ?? 0.0,
+            _data['rect_bottom'] ?? 0.0),
         entityID = _data['entityID'],
         confidence = _data['confidence'],
         label = _data['label'];
