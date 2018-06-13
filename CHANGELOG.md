@@ -1,3 +1,7 @@
+## 0.4.1
+
+* Added On-device Face detecting API for android.
+
 ## 0.4.0
 
 * Added On-device Face detecting API (iOS only).

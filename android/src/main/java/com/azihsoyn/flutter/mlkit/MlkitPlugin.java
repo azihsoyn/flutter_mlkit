@@ -28,6 +28,10 @@ import com.google.firebase.ml.vision.cloud.text.FirebaseVisionCloudText;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
+import com.google.firebase.ml.vision.face.FirebaseVisionFace;
+import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
+import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
+import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabel;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabelDetector;
 import android.graphics.Bitmap;
@@ -41,12 +45,26 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 /**
  * MlkitPlugin
  */
 public class MlkitPlugin implements MethodCallHandler {
   private static Context context;
+
+  private static final List<Integer> LandmarkTypes = Collections.unmodifiableList( new ArrayList<Integer>() {{
+    add(FirebaseVisionFaceLandmark.BOTTOM_MOUTH);
+    add(FirebaseVisionFaceLandmark.RIGHT_MOUTH);
+    add(FirebaseVisionFaceLandmark.LEFT_MOUTH);
+    add(FirebaseVisionFaceLandmark.RIGHT_EYE);
+    add(FirebaseVisionFaceLandmark.LEFT_EYE);
+    add(FirebaseVisionFaceLandmark.RIGHT_EAR);
+    add(FirebaseVisionFaceLandmark.LEFT_EAR);
+    add(FirebaseVisionFaceLandmark.RIGHT_CHEEK);
+    add(FirebaseVisionFaceLandmark.LEFT_CHEEK);
+    add(FirebaseVisionFaceLandmark.NOSE_BASE);
+  }} );
   /**
    * Plugin registration.
    */
@@ -139,7 +157,50 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error",e.getMessage());
         return;
       }
-    }else {
+    } else if (call.method.equals("FirebaseVisionFaceDetector#detectFromPath")){
+      String path = call.argument("filepath");
+
+      try {
+        File file = new File(path);
+        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
+        FirebaseVisionFaceDetector detector;
+        if (call.argument("option") != null) {
+          Map<String, Object> optionsMap = call.argument("option");
+          FirebaseVisionFaceDetectorOptions options =
+                  new FirebaseVisionFaceDetectorOptions.Builder()
+                          .setModeType((int)optionsMap.get("modeType"))
+                          .setLandmarkType((int)optionsMap.get("landmarkType"))
+                          .setClassificationType((int)optionsMap.get("classificationType"))
+                          .setMinFaceSize((float)(double)optionsMap.get("minFaceSize"))
+                          .setTrackingEnabled((boolean)optionsMap.get("isTrackingEnabled"))
+                          .build();
+          detector = FirebaseVision.getInstance()
+                  .getVisionFaceDetector(options);
+        } else {
+          detector = FirebaseVision.getInstance()
+                  .getVisionFaceDetector();
+        }
+        detector.detectInImage(image)
+                .addOnSuccessListener(
+                        new OnSuccessListener<List<FirebaseVisionFace>>() {
+                          @Override
+                          public void onSuccess(List<FirebaseVisionFace> faces) {
+                            result.success(processFaceDetectionResult(faces));
+                          }
+                        })
+                .addOnFailureListener(
+                        new OnFailureListener() {
+                          @Override
+                          public void onFailure(@NonNull Exception e) {
+                            // Task failed with an exception
+                            e.printStackTrace();
+                          }
+                        });
+      }catch (IOException e){
+        Log.e("error",e.getMessage());
+        return;
+      }
+    } else {
       result.notImplemented();
     }
   }
@@ -364,8 +425,48 @@ public class MlkitPlugin implements MethodCallHandler {
     return dataBuilder.build();
   }
 
+  private ImmutableList<ImmutableMap<String, Object>> processFaceDetectionResult(List<FirebaseVisionFace> faces) {
+    ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
+            ImmutableList.<ImmutableMap<String, Object>>builder();
 
-   private ImmutableList<ImmutableMap<String, Object>> processImageLabelingResult(List<FirebaseVisionLabel> labels) {
+    for (FirebaseVisionFace face: faces) {
+      ImmutableMap.Builder<String, Object> faceBuilder = ImmutableMap.<String, Object>builder();
+      faceBuilder.put("rect_bottom", (double)face.getBoundingBox().bottom);
+      faceBuilder.put("rect_top", (double)face.getBoundingBox().top);
+      faceBuilder.put("rect_right", (double)face.getBoundingBox().right);
+      faceBuilder.put("rect_left", (double)face.getBoundingBox().left);
+      faceBuilder.put("tracking_id", (int)face.getTrackingId());
+      faceBuilder.put("head_euler_angle_y", face.getHeadEulerAngleY());
+      faceBuilder.put("head_euler_angle_z", face.getHeadEulerAngleZ());
+      faceBuilder.put("smiling_probability", face.getSmilingProbability());
+      faceBuilder.put("right_eye_open_probability", face.getRightEyeOpenProbability());
+      faceBuilder.put("left_eye_open_probability", face.getLeftEyeOpenProbability());
+      ImmutableMap.Builder<Integer, Object> landmarksBuilder = ImmutableMap.<Integer, Object>builder();
+      for (Integer landmarkType: LandmarkTypes) {
+        ImmutableMap.Builder<String, Object> landmarkBuilder = ImmutableMap.<String, Object>builder();
+        ImmutableMap.Builder<String, Object> positionkBuilder = ImmutableMap.<String, Object>builder();
+        FirebaseVisionFaceLandmark landmark = face.getLandmark(landmarkType);
+        if(landmark != null) {
+          positionkBuilder.put("x", landmark.getPosition().getX());
+          positionkBuilder.put("y", landmark.getPosition().getY());
+          if(landmark.getPosition().getZ() != null) {
+            positionkBuilder.put("z", landmark.getPosition().getZ());
+          }
+          landmarkBuilder.put("position", positionkBuilder.build());
+          landmarkBuilder.put("type", landmarkType);
+          landmarksBuilder.put(landmarkType, landmarkBuilder.build());
+        }
+      }
+      faceBuilder.put("landmarks", landmarksBuilder.build());
+
+
+      dataBuilder.add(faceBuilder.build());
+    }
+
+    return dataBuilder.build();
+  }
+
+  private ImmutableList<ImmutableMap<String, Object>> processImageLabelingResult(List<FirebaseVisionLabel> labels) {
     ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
             ImmutableList.<ImmutableMap<String, Object>>builder();
 
