@@ -34,6 +34,17 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabel;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabelDetector;
+import com.google.firebase.ml.common.FirebaseMLException;
+import com.google.firebase.ml.custom.FirebaseModelDataType;
+import com.google.firebase.ml.custom.FirebaseModelInputOutputOptions;
+import com.google.firebase.ml.custom.FirebaseModelInputs;
+import com.google.firebase.ml.custom.FirebaseModelInterpreter;
+import com.google.firebase.ml.custom.FirebaseModelManager;
+import com.google.firebase.ml.custom.FirebaseModelOptions;
+import com.google.firebase.ml.custom.FirebaseModelOutputs;
+import com.google.firebase.ml.custom.model.FirebaseCloudModelSource;
+import com.google.firebase.ml.custom.model.FirebaseLocalModelSource;
+import com.google.firebase.ml.custom.model.FirebaseModelDownloadConditions;
 import android.graphics.Bitmap;
 import android.media.Image;
 import java.io.IOException;
@@ -200,7 +211,66 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error",e.getMessage());
         return;
       }
-    } else {
+    } else if (call.method.equals("FirebaseModelManager#registerCloudModelSource")) {
+      FirebaseModelManager manager = FirebaseModelManager.getInstance();
+
+      if (call.argument("source") != null) {
+        Map<String, Object> sourceMap = call.argument("source");
+        String modelName = (String)sourceMap.get("modelName");
+        Boolean enableModelUpdates = (Boolean)sourceMap.get("enableModelUpdates");
+        FirebaseCloudModelSource.Builder cloudSourceBuilder = new FirebaseCloudModelSource.Builder(modelName);
+        cloudSourceBuilder.enableModelUpdates(enableModelUpdates);
+
+        if(sourceMap.get("initialDownloadConditions") != null) {
+          Map<String, Boolean> conditionMap = (Map<String, Boolean>)sourceMap.get("initialDownloadConditions");
+          FirebaseModelDownloadConditions.Builder conditionsBuilder = new FirebaseModelDownloadConditions.Builder();
+          if(conditionMap.get("requireWifi")) {
+            conditionsBuilder.requireWifi();
+          }
+          if(conditionMap.get("requireDeviceIdle")) {
+            conditionsBuilder.requireDeviceIdle();
+          }
+          if(conditionMap.get("requireCharging")) {
+            conditionsBuilder.requireCharging();
+          }
+          cloudSourceBuilder.setInitialDownloadConditions(conditionsBuilder.build());
+        }
+
+        if(sourceMap.get("updatesDownloadConditions") != null) {
+          Map<String, Boolean> conditionMap = (Map<String, Boolean>)sourceMap.get("updatesDownloadConditions");
+          FirebaseModelDownloadConditions.Builder conditionsBuilder = new FirebaseModelDownloadConditions.Builder();
+          if(conditionMap.get("requireWifi")) {
+            conditionsBuilder.requireWifi();
+          }
+          if(conditionMap.get("requireDeviceIdle")) {
+            conditionsBuilder.requireDeviceIdle();
+          }
+          if(conditionMap.get("requireCharging")) {
+            conditionsBuilder.requireCharging();
+          }
+          cloudSourceBuilder.setUpdatesDownloadConditions(conditionsBuilder.build());
+        }
+
+        manager.registerCloudModelSource(cloudSourceBuilder.build());
+      }
+    } else if (call.method.equals("FirebaseModelManager#registerLocalModelSource")) {
+        FirebaseModelManager manager = FirebaseModelManager.getInstance();
+
+    } else if (call.method.equals("FirebaseModelInterpreter#run")) {
+      FirebaseModelInterpreter mInterpreter;
+      String cloudModelName = call.argument("cloudModelName");
+      try {
+        FirebaseModelOptions modelOptions = new FirebaseModelOptions.Builder()
+                .setCloudModelName(cloudModelName)
+                //.setLocalModelName("my_local_model")
+                .build();
+        mInterpreter = FirebaseModelInterpreter.getInstance(modelOptions);
+        Log.d("hoge","setup success");
+      } catch (FirebaseMLException e) {
+        Log.e("error",e.getMessage());
+        return;
+      }
+    }else {
       result.notImplemented();
     }
   }
