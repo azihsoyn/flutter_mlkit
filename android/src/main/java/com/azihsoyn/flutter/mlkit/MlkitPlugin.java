@@ -56,6 +56,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -286,22 +287,25 @@ public class MlkitPlugin implements MethodCallHandler {
                         .build();
 
         mInterpreter = FirebaseModelInterpreter.getInstance(modelOptions);
-        byte[][][][] input = new byte[1][640][480][3];
-        FirebaseModelInputs inputs = new FirebaseModelInputs.Builder().add(input).build();
+        Bitmap bmp = getBitmapFromAsset(context, "mountain.jpg");
+        ByteBuffer imgData = convertBitmapToByteBuffer(bmp, bmp.getWidth(),
+                bmp.getHeight());
+        FirebaseModelInputs inputs = new FirebaseModelInputs.Builder().add(imgData).build();
         mInterpreter
                 .run(inputs, inputOutputOptions)
                 .addOnFailureListener(new OnFailureListener() {
                   @Override
                   public void onFailure(@NonNull Exception e) {
                     e.printStackTrace();
-                      Log.e("error", "Error running model inference");
-                      return;
+                    Log.e("error", e.toString());
+                    return;
                   }
                 })
                 .continueWith(
                         new Continuation<FirebaseModelOutputs, List<String>>() {
                           @Override
                           public List<String> then(Task<FirebaseModelOutputs> task) {
+                            Log.d("result : ", task.getResult().<byte[][]>getOutput(0).toString());
                             byte[][] labelProbArray = task.getResult()
                                     .<byte[][]>getOutput(0);
                             List<String> topLabels = Arrays.asList("a", "b", "c");
@@ -309,12 +313,53 @@ public class MlkitPlugin implements MethodCallHandler {
                           }
                         });
       } catch (FirebaseMLException e) {
+        e.printStackTrace();
         Log.e("error",e.getMessage());
         return;
       }
     }else {
       result.notImplemented();
     }
+  }
+
+  public static Bitmap getBitmapFromAsset(Context context, String filePath) {
+    AssetManager assetManager = context.getAssets();
+
+    InputStream is;
+    Bitmap bitmap = null;
+    try {
+      is = assetManager.open(filePath);
+      bitmap = BitmapFactory.decodeStream(is);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return bitmap;
+  }
+
+  private synchronized ByteBuffer convertBitmapToByteBuffer(
+          Bitmap bitmap, int width, int height) {
+    ByteBuffer imgData =
+            ByteBuffer.allocateDirect(
+                    1 * 224 * 224 * 3);
+    imgData.order(ByteOrder.nativeOrder());
+    Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224,
+            true);
+    imgData.rewind();
+    int[] intValues = new int[224 * 224];
+    scaledBitmap.getPixels(intValues, 0, scaledBitmap.getWidth(), 0, 0,
+            scaledBitmap.getWidth(), scaledBitmap.getHeight());
+    // Convert the image to int points.
+    int pixel = 0;
+    for (int i = 0; i < 224; ++i) {
+      for (int j = 0; j < 224; ++j) {
+        final int val = intValues[pixel++];
+        imgData.put((byte) ((val >> 16) & 0xFF));
+        imgData.put((byte) ((val >> 8) & 0xFF));
+        imgData.put((byte) (val & 0xFF));
+      }
+    }
+    return imgData;
   }
 
   public static int[] toArray(ArrayList<Integer> list){
