@@ -182,10 +182,14 @@ class FirebaseModelInterpreter {
 
   FirebaseModelInterpreter._() {}
 
-  Future<List<dynamic>> run(String cloudModelName) async {
+  Future<List<dynamic>> run(
+      String cloudModelName, FirebaseModelInputOutputOptions options) async {
     try {
       List<dynamic> barcodes = await _channel.invokeMethod(
-          "FirebaseModelInterpreter#run", {'cloudModelName': cloudModelName});
+          "FirebaseModelInterpreter#run", {
+        'cloudModelName': cloudModelName,
+        'inputOutputOptions': options.asDictionary()
+      });
       List<dynamic> ret = [];
       barcodes.forEach((dynamic item) {
         print("item : ${item}");
@@ -199,6 +203,43 @@ class FirebaseModelInterpreter {
 }
 
 //class FirebaseModelOptions {}
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelInputOutputOptions.Builder
+class FirebaseModelInputOutputOptions {
+  final int inputIndex;
+  final FirebaseModelDataType inputDataType;
+  final List<int> inputDims;
+  final int outputIndex;
+  final FirebaseModelDataType outputDataType;
+  final List<int> outputDims;
+
+  const FirebaseModelInputOutputOptions(this.inputIndex, this.inputDataType,
+      this.inputDims, this.outputIndex, this.outputDataType, this.outputDims);
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "inputIndex": inputIndex,
+      "inputDataType": inputDataType.value,
+      "inputDims": inputDims,
+      "outputIndex": outputIndex,
+      "outputDataType": outputDataType.value,
+      "outputDims": outputDims,
+    };
+  }
+}
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelDataType.DataType
+class FirebaseModelDataType {
+  final int value;
+  const FirebaseModelDataType._(int value) : value = value;
+
+  static const FLOAT32 = const FirebaseModelDataType._(1);
+  static const INT32 = const FirebaseModelDataType._(2);
+  static const BYTE = const FirebaseModelDataType._(3);
+  static const LONG = const FirebaseModelDataType._(4);
+}
 
 // android
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelManager

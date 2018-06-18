@@ -18,6 +18,8 @@ import com.google.common.collect.ImmutableMap;
 import android.support.annotation.NonNull;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
@@ -53,10 +55,13 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Collections;
+import java.util.Iterator;
 
 /**
  * MlkitPlugin
@@ -264,8 +269,45 @@ public class MlkitPlugin implements MethodCallHandler {
                 .setCloudModelName(cloudModelName)
                 //.setLocalModelName("my_local_model")
                 .build();
+
+        Map<String, Object> inputOutputOptionsMap = call.argument("inputOutputOptions");
+        int inputIndex = (int)inputOutputOptionsMap.get("inputIndex");
+        int inputDataType = (int)inputOutputOptionsMap.get("inputDataType");
+        ArrayList<Integer> _inputDims = (ArrayList<Integer>)inputOutputOptionsMap.get("inputDims");
+        int[] inputDims = toArray(_inputDims);
+        int outputIndex = (int)inputOutputOptionsMap.get("outputIndex");
+        int outputDataType = (int)inputOutputOptionsMap.get("outputDataType");
+        ArrayList<Integer> _outputDims = (ArrayList<Integer>)inputOutputOptionsMap.get("outputDims");
+        int[] outputDims = toArray(_outputDims);
+        FirebaseModelInputOutputOptions inputOutputOptions =
+                new FirebaseModelInputOutputOptions.Builder()
+                        .setInputFormat(inputIndex, inputDataType, inputDims)
+                        .setOutputFormat(outputIndex, outputDataType, outputDims)
+                        .build();
+
         mInterpreter = FirebaseModelInterpreter.getInstance(modelOptions);
-        Log.d("hoge","setup success");
+        byte[][][][] input = new byte[1][640][480][3];
+        FirebaseModelInputs inputs = new FirebaseModelInputs.Builder().add(input).build();
+        mInterpreter
+                .run(inputs, inputOutputOptions)
+                .addOnFailureListener(new OnFailureListener() {
+                  @Override
+                  public void onFailure(@NonNull Exception e) {
+                    e.printStackTrace();
+                      Log.e("error", "Error running model inference");
+                      return;
+                  }
+                })
+                .continueWith(
+                        new Continuation<FirebaseModelOutputs, List<String>>() {
+                          @Override
+                          public List<String> then(Task<FirebaseModelOutputs> task) {
+                            byte[][] labelProbArray = task.getResult()
+                                    .<byte[][]>getOutput(0);
+                            List<String> topLabels = Arrays.asList("a", "b", "c");
+                            return topLabels;
+                          }
+                        });
       } catch (FirebaseMLException e) {
         Log.e("error",e.getMessage());
         return;
@@ -273,6 +315,15 @@ public class MlkitPlugin implements MethodCallHandler {
     }else {
       result.notImplemented();
     }
+  }
+
+  public static int[] toArray(ArrayList<Integer> list){
+    // List<Integer> -> int[]
+    int l = list.size();
+    int[] arr = new int[l];
+    Iterator<Integer> iter = list.iterator();
+    for (int i=0;i<l;i++) arr[i] = iter.next();
+    return arr;
   }
 
   private ImmutableList<ImmutableMap<String, Object>> processBarcodeRecognitionResult(List<FirebaseVisionBarcode> barcodes) {
