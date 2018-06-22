@@ -76,11 +76,23 @@ public class MlkitPlugin implements MethodCallHandler {
 
   @Override
   public void onMethodCall(MethodCall call, final Result result) {
-    if (call.method.equals("FirebaseVisionTextDetector#detectFromPath")) {
+
+    FirebaseVisionImage image = null;
+
+    if(call.method.endsWith("#detectFromPath")) {
       String path = call.argument("filepath");
+      File file = new File(path);
+      image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
+    } else if (call.method.endsWith("#detectFromBinary")) {
+      byte[] bytes = call.argument("bytes");
+      image = FirebaseVisionImage.fromByteArray(bytes);
+    } else {
+      return result.notImplemented;
+    }
+
+    if (call.method.startsWith("FirebaseVisionTextDetector#detectFrom")) {
       try {
-        File file = new File(path);
-        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
+
         FirebaseVisionTextDetector detector = FirebaseVision.getInstance()
                 .getVisionTextDetector();
         detector.detectInImage(image)
@@ -103,11 +115,9 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error", e.getMessage());
         return;
       }
-    } else if (call.method.equals("FirebaseVisionBarcodeDetector#detectFromPath")) {
-      String path = call.argument("filepath");
+    } else if (call.method.startsWith("FirebaseVisionBarcodeDetector#detectFrom")) {
       try {
-        File file = new File(path);
-        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
+
         FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
                 .getVisionBarcodeDetector();
         detector.detectInImage(image)
@@ -130,11 +140,10 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error", e.getMessage());
         return;
       }
-    } else if (call.method.equals("FirebaseVisionLabelDetector#detectFromPath")){
-      String path = call.argument("filepath");
+    } else if (call.method.startsWith("FirebaseVisionLabelDetector#detectFrom")){
+
       try {
-        File file = new File(path);
-        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
+
         FirebaseVisionLabelDetector detector = FirebaseVision.getInstance()
                 .getVisionLabelDetector();
         detector.detectInImage(image)
@@ -157,12 +166,9 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error",e.getMessage());
         return;
       }
-    } else if (call.method.equals("FirebaseVisionFaceDetector#detectFromPath")){
-      String path = call.argument("filepath");
+    } else if (call.method.startsWith("FirebaseVisionFaceDetector#detectFrom")){
 
       try {
-        File file = new File(path);
-        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
         FirebaseVisionFaceDetector detector;
         if (call.argument("option") != null) {
           Map<String, Object> optionsMap = call.argument("option");
