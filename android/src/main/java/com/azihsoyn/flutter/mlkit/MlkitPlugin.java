@@ -84,8 +84,8 @@ public class MlkitPlugin implements MethodCallHandler {
       File file = new File(path);
       image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
     } else if (call.method.endsWith("#detectFromBinary")) {
-      byte[] bytes = call.argument("bytes");
-      image = FirebaseVisionImage.fromByteArray(bytes);
+      ByteBuffer bytes = call.argument("bytes");
+      image = FirebaseVisionImage.fromByteBuffer(bytes);
     } else {
       return result.notImplemented;
     }
