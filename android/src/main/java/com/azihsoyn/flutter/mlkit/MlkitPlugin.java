@@ -51,24 +51,42 @@ import android.graphics.Bitmap;
 import android.media.Image;
 import java.io.IOException;
 import android.util.Log;
+import android.util.Pair;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.PriorityQueue;
+import java.util.Comparator;
 
 /**
  * MlkitPlugin
  */
 public class MlkitPlugin implements MethodCallHandler {
   private static Context context;
+  private static List<String> mLabelList;
+
+  private final PriorityQueue<Map.Entry<String, Float>> sortedLabels =
+          new PriorityQueue<>(
+                  3,
+                  new Comparator<Map.Entry<String, Float>>() {
+                    @Override
+                    public int compare(Map.Entry<String, Float> o1, Map.Entry<String, Float>
+                            o2) {
+                      return (o1.getValue()).compareTo(o2.getValue());
+                    }
+                  });
 
   private static final List<Integer> LandmarkTypes = Collections.unmodifiableList( new ArrayList<Integer>() {{
     add(FirebaseVisionFaceLandmark.BOTTOM_MOUTH);
@@ -89,6 +107,7 @@ public class MlkitPlugin implements MethodCallHandler {
     final MethodChannel channel = new MethodChannel(registrar.messenger(), "plugins.flutter.io/mlkit");
     channel.setMethodCallHandler(new MlkitPlugin());
     context = registrar.context();
+    mLabelList = loadLabelList(context);
   }
 
   @Override
@@ -275,7 +294,7 @@ public class MlkitPlugin implements MethodCallHandler {
         int inputIndex = (int)inputOutputOptionsMap.get("inputIndex");
         int inputDataType = (int)inputOutputOptionsMap.get("inputDataType");
         ArrayList<Integer> _inputDims = (ArrayList<Integer>)inputOutputOptionsMap.get("inputDims");
-        int[] inputDims = toArray(_inputDims);
+        final int[] inputDims = toArray(_inputDims);
         int outputIndex = (int)inputOutputOptionsMap.get("outputIndex");
         int outputDataType = (int)inputOutputOptionsMap.get("outputDataType");
         ArrayList<Integer> _outputDims = (ArrayList<Integer>)inputOutputOptionsMap.get("outputDims");
@@ -305,10 +324,14 @@ public class MlkitPlugin implements MethodCallHandler {
                         new Continuation<FirebaseModelOutputs, List<String>>() {
                           @Override
                           public List<String> then(Task<FirebaseModelOutputs> task) {
-                            Log.d("result : ", task.getResult().<byte[][]>getOutput(0).toString());
                             byte[][] labelProbArray = task.getResult()
                                     .<byte[][]>getOutput(0);
-                            List<String> topLabels = Arrays.asList("a", "b", "c");
+                            Log.d("prob", ((labelProbArray[0][980]&0xff)/ 255.0f)+"");
+                            Log.d("prob", ((labelProbArray[0][981]&0xff)/ 255.0f)+"");
+                            Log.d("prob", ((labelProbArray[0][982]&0xff)/ 255.0f)+"");
+                            List<String> topLabels = getTopLabels(labelProbArray);
+                            Log.d("topLabels", topLabels.toString());
+                            result.success(task.getResult().<byte[][]>getOutput(0)[0]);
                             return topLabels;
                           }
                         });
@@ -326,15 +349,50 @@ public class MlkitPlugin implements MethodCallHandler {
     AssetManager assetManager = context.getAssets();
 
     InputStream is;
-    Bitmap bitmap = null;
+    Bitmap mSelectedImage = null;
     try {
       is = assetManager.open(filePath);
-      bitmap = BitmapFactory.decodeStream(is);
+      mSelectedImage = BitmapFactory.decodeStream(is);
     } catch (IOException e) {
       e.printStackTrace();
     }
 
-    return bitmap;
+    if (mSelectedImage != null) {
+      int targetWidth = 1440;
+      int maxHeight = 2418;
+
+      // Determine how much to scale down the image
+      float scaleFactor =
+              Math.max(
+                      (float) mSelectedImage.getWidth() / (float) targetWidth,
+                      (float) mSelectedImage.getHeight() / (float) maxHeight);
+
+      Bitmap resizedBitmap =
+              Bitmap.createScaledBitmap(
+                      mSelectedImage,
+                      (int) (mSelectedImage.getWidth() / scaleFactor),
+                      (int) (mSelectedImage.getHeight() / scaleFactor),
+                      true);
+
+      mSelectedImage = resizedBitmap;
+    }
+
+    return mSelectedImage;
+  }
+
+  private static List<String> loadLabelList(Context context) {
+    List<String> labelList = new ArrayList<>();
+    try (BufferedReader reader =
+                 new BufferedReader(new InputStreamReader(context.getAssets().open
+                         ("labels.txt")))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        labelList.add(line);
+      }
+    } catch (IOException e) {
+      Log.e("error loadLabelList", "Failed to read label list.", e);
+    }
+    return labelList;
   }
 
   private synchronized ByteBuffer convertBitmapToByteBuffer(
@@ -360,6 +418,25 @@ public class MlkitPlugin implements MethodCallHandler {
       }
     }
     return imgData;
+  }
+
+  private synchronized List<String> getTopLabels(byte[][] labelProbArray) {
+    for (int i = 0; i < mLabelList.size(); ++i) {
+      sortedLabels.add(
+              new AbstractMap.SimpleEntry<>(mLabelList.get(i), (labelProbArray[0][i] &
+                      0xff) / 255.0f));
+      if (sortedLabels.size() > 5) {
+        sortedLabels.poll();
+      }
+    }
+    List<String> result = new ArrayList<>();
+    final int size = sortedLabels.size();
+    for (int i = 0; i < size; ++i) {
+      Map.Entry<String, Float> label = sortedLabels.poll();
+      result.add(label.getKey() + ":" + label.getValue());
+    }
+    Log.d("labels", "labels: " + result.toString());
+    return result;
   }
 
   public static int[] toArray(ArrayList<Integer> list){

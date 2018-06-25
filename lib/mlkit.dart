@@ -185,15 +185,23 @@ class FirebaseModelInterpreter {
   Future<List<dynamic>> run(
       String cloudModelName, FirebaseModelInputOutputOptions options) async {
     try {
-      List<dynamic> barcodes = await _channel.invokeMethod(
+      print("hoge 1");
+      dynamic results = await _channel.invokeMethod(
           "FirebaseModelInterpreter#run", {
         'cloudModelName': cloudModelName,
         'inputOutputOptions': options.asDictionary()
       });
+      print("hoge 2");
       List<dynamic> ret = [];
-      barcodes.forEach((dynamic item) {
-        print("item : ${item}");
-      });
+      print("ModelInterpreter results : ${results}");
+      print("ModelInterpreter results length : ${results.length}");
+      for (var i = 0; i < results.length; i++) {
+        int item = results[i];
+        if (item != 0) {
+          print("i : ${i}, item : ${item}, type : ${item.runtimeType}");
+        }
+      }
+      ;
       return ret;
     } catch (e) {
       print("Error on FirebaseModelInterpreter#run : ${e.toString()}");
