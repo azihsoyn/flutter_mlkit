@@ -41,21 +41,28 @@ NSDictionary *landmarkTypeMap;
     return self;
 }
 
+UIImage* imageFromImageSourceWithData(NSData *data) {
+  CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+  CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+  CFRelease(imageSource);
+  UIImage *image = [UIImage imageWithCGImage:imageRef];
+  CGImageRelease(imageRef);
+  return image;
+}
+
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     FIRVision *vision = [FIRVision vision];
     NSMutableArray *ret = [NSMutableArray array];
-    
     UIImage* uiImage = NULL;
     
-    if ([call.method hasPrefix:@"#detectFromPath"]) {
+    if ([call.method hasSuffix:@"#detectFromPath"]) {
         NSString *path = call.arguments[@"filepath"];
         uiImage = [UIImage imageWithContentsOfFile:path];
-    } else if ([call.method hasPrefix:@"#detectFromBinary"]) {
-        NSData *binary = call.arguments[@"binary"];
-        uiImage = [UIImage imageWithData: binary];
+    } else if ([call.method hasSuffix:@"#detectFromBinary"]) {
+        FlutterStandardTypedData* typedData = call.arguments[@"binary"];
+        uiImage = [UIImage imageWithData: typedData.data];
     } else {
-        [ret addObject:@"Invalid method"];
-        result(ret);
+        result(FlutterMethodNotImplemented);
         return;
     }
     
@@ -99,11 +106,6 @@ NSDictionary *landmarkTypeMap;
                              return;
                          }];
     } else if ([call.method hasPrefix:@"FirebaseVisionBarcodeDetector#detectFrom"]) {
-        /*
-         FIRVisionBarcodeDetectorOptions *options = [[FIRVisionBarcodeDetectorOptions alloc]
-         initWithFormats: FIRVisionBarcodeFormatAll];
-         barcodeDetector = [vision barcodeDetectorWithOptions:options];
-         */
         barcodeDetector = [vision barcodeDetector];
         [barcodeDetector detectInImage:image
                             completion:^(NSArray<FIRVisionBarcode *> *barcodes,
