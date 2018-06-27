@@ -80,7 +80,6 @@ public class MlkitPlugin implements MethodCallHandler {
     FirebaseVisionImage image = null;
 
     if(call.method.endsWith("#detectFromPath")) {
-      Log.e("Path error", call.method);
       String path = call.argument("filepath");
       File file = new File(path);
 
@@ -91,15 +90,12 @@ public class MlkitPlugin implements MethodCallHandler {
         return;
       }
     } else if (call.method.endsWith("#detectFromBinary")) {
-      Log.e("Binary error", call.method);
-      byte[] bytes = call.argument("bytes");
+      byte[] bytes = call.argument("binary");
       Bitmap bitmap = BitmapFactory.decodeByteArray(bytes , 0, bytes.length);
       image = FirebaseVisionImage.fromBitmap(bitmap);
     } else {
       result.notImplemented();
     }
-
-    Log.e("Done error", call.method);
 
     if (call.method.startsWith("FirebaseVisionTextDetector#detectFrom")) {
       FirebaseVisionTextDetector detector = FirebaseVision.getInstance()
