@@ -1,3 +1,7 @@
+## 0.5.0
+
+* Added functionality to detect from binary
+
 ## 0.4.1
 
 * Added On-device Face detecting API for android.

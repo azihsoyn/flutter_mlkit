@@ -53,5 +53,9 @@ import 'package:mlkit/mlkit.dart';
 
 FirebaseVisionTextDetector detector = FirebaseVisionTextDetector.instance;
 
+// Detect form file/image by path
 var currentLabels = await detector.detectFromPath(_file?.path);
+
+// Detect from binary data of a file/image
+var currentLabels = await detector.detectFromBinary(_file?.readAsBytesSync());
 ```
