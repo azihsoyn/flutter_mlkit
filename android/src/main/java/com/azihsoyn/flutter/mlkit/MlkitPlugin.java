@@ -76,17 +76,6 @@ import java.util.Comparator;
 public class MlkitPlugin implements MethodCallHandler {
   private static Context context;
 
-  private final PriorityQueue<Map.Entry<String, Float>> sortedLabels =
-          new PriorityQueue<>(
-                  3,
-                  new Comparator<Map.Entry<String, Float>>() {
-                    @Override
-                    public int compare(Map.Entry<String, Float> o1, Map.Entry<String, Float>
-                            o2) {
-                      return (o1.getValue()).compareTo(o2.getValue());
-                    }
-                  });
-
   private static final List<Integer> LandmarkTypes = Collections.unmodifiableList( new ArrayList<Integer>() {{
     add(FirebaseVisionFaceLandmark.BOTTOM_MOUTH);
     add(FirebaseVisionFaceLandmark.RIGHT_MOUTH);
@@ -110,130 +99,118 @@ public class MlkitPlugin implements MethodCallHandler {
 
   @Override
   public void onMethodCall(MethodCall call, final Result result) {
-    if (call.method.equals("FirebaseVisionTextDetector#detectFromPath")) {
+
+    FirebaseVisionImage image = null;
+
+    if(call.method.endsWith("#detectFromPath")) {
       String path = call.argument("filepath");
-      try {
-        File file = new File(path);
-        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
-        FirebaseVisionTextDetector detector = FirebaseVision.getInstance()
-                .getVisionTextDetector();
-        detector.detectInImage(image)
-                .addOnSuccessListener(
-                        new OnSuccessListener<FirebaseVisionText>() {
-                          @Override
-                          public void onSuccess(FirebaseVisionText texts) {
-                            result.success(processTextRecognitionResult(texts));
-                          }
-                        })
-                .addOnFailureListener(
-                        new OnFailureListener() {
-                          @Override
-                          public void onFailure(@NonNull Exception e) {
-                            // Task failed with an exception
-                            e.printStackTrace();
-                          }
-                        });
-      } catch (IOException e) {
-        Log.e("error", e.getMessage());
-        return;
-      }
-    } else if (call.method.equals("FirebaseVisionBarcodeDetector#detectFromPath")) {
-      String path = call.argument("filepath");
-      try {
-        File file = new File(path);
-        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
-        FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
-                .getVisionBarcodeDetector();
-        detector.detectInImage(image)
-                .addOnSuccessListener(
-                        new OnSuccessListener<List<FirebaseVisionBarcode>>() {
-                          @Override
-                          public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
-                            result.success(processBarcodeRecognitionResult(barcodes));
-                          }
-                        })
-                .addOnFailureListener(
-                        new OnFailureListener() {
-                          @Override
-                          public void onFailure(@NonNull Exception e) {
-                            // Task failed with an exception
-                            e.printStackTrace();
-                          }
-                        });
-      } catch (IOException e) {
-        Log.e("error", e.getMessage());
-        return;
-      }
-    } else if (call.method.equals("FirebaseVisionLabelDetector#detectFromPath")){
-      String path = call.argument("filepath");
-      try {
-        File file = new File(path);
-        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
-        FirebaseVisionLabelDetector detector = FirebaseVision.getInstance()
-                .getVisionLabelDetector();
-        detector.detectInImage(image)
-                .addOnSuccessListener(
-                        new OnSuccessListener<List<FirebaseVisionLabel>>() {
-                          @Override
-                          public void onSuccess(List<FirebaseVisionLabel> labels) {
-                            result.success(processImageLabelingResult(labels));
-                          }
-                        })
-                .addOnFailureListener(
-                        new OnFailureListener() {
-                          @Override
-                          public void onFailure(@NonNull Exception e) {
-                            // Task failed with an exception
-                            e.printStackTrace();
-                          }
-                        });
-      }catch (IOException e){
-        Log.e("error",e.getMessage());
-        return;
-      }
-    } else if (call.method.equals("FirebaseVisionFaceDetector#detectFromPath")){
-      String path = call.argument("filepath");
+      File file = new File(path);
 
       try {
-        File file = new File(path);
-        FirebaseVisionImage image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
-        FirebaseVisionFaceDetector detector;
-        if (call.argument("option") != null) {
-          Map<String, Object> optionsMap = call.argument("option");
-          FirebaseVisionFaceDetectorOptions options =
-                  new FirebaseVisionFaceDetectorOptions.Builder()
-                          .setModeType((int)optionsMap.get("modeType"))
-                          .setLandmarkType((int)optionsMap.get("landmarkType"))
-                          .setClassificationType((int)optionsMap.get("classificationType"))
-                          .setMinFaceSize((float)(double)optionsMap.get("minFaceSize"))
-                          .setTrackingEnabled((boolean)optionsMap.get("isTrackingEnabled"))
-                          .build();
-          detector = FirebaseVision.getInstance()
-                  .getVisionFaceDetector(options);
-        } else {
-          detector = FirebaseVision.getInstance()
-                  .getVisionFaceDetector();
-        }
-        detector.detectInImage(image)
-                .addOnSuccessListener(
-                        new OnSuccessListener<List<FirebaseVisionFace>>() {
-                          @Override
-                          public void onSuccess(List<FirebaseVisionFace> faces) {
-                            result.success(processFaceDetectionResult(faces));
-                          }
-                        })
-                .addOnFailureListener(
-                        new OnFailureListener() {
-                          @Override
-                          public void onFailure(@NonNull Exception e) {
-                            // Task failed with an exception
-                            e.printStackTrace();
-                          }
-                        });
-      }catch (IOException e){
-        Log.e("error",e.getMessage());
+        image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
+      } catch (IOException e) {
+        Log.e("error", e.getMessage());
         return;
       }
+    } else if (call.method.endsWith("#detectFromBinary")) {
+      byte[] bytes = call.argument("binary");
+      Bitmap bitmap = BitmapFactory.decodeByteArray(bytes , 0, bytes.length);
+      image = FirebaseVisionImage.fromBitmap(bitmap);
+    } else {
+      result.notImplemented();
+    }
+
+    if (call.method.startsWith("FirebaseVisionTextDetector#detectFrom")) {
+      FirebaseVisionTextDetector detector = FirebaseVision.getInstance()
+              .getVisionTextDetector();
+      detector.detectInImage(image)
+              .addOnSuccessListener(
+                      new OnSuccessListener<FirebaseVisionText>() {
+                        @Override
+                        public void onSuccess(FirebaseVisionText texts) {
+                          result.success(processTextRecognitionResult(texts));
+                        }
+                      })
+              .addOnFailureListener(
+                      new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                          // Task failed with an exception
+                          e.printStackTrace();
+                        }
+                      });
+    } else if (call.method.startsWith("FirebaseVisionBarcodeDetector#detectFrom")) {
+      FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
+              .getVisionBarcodeDetector();
+      detector.detectInImage(image)
+              .addOnSuccessListener(
+                      new OnSuccessListener<List<FirebaseVisionBarcode>>() {
+                        @Override
+                        public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
+                          result.success(processBarcodeRecognitionResult(barcodes));
+                        }
+                      })
+              .addOnFailureListener(
+                      new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                          // Task failed with an exception
+                          e.printStackTrace();
+                        }
+                      });
+    } else if (call.method.startsWith("FirebaseVisionLabelDetector#detectFrom")){
+      FirebaseVisionLabelDetector detector = FirebaseVision.getInstance()
+              .getVisionLabelDetector();
+      detector.detectInImage(image)
+              .addOnSuccessListener(
+                      new OnSuccessListener<List<FirebaseVisionLabel>>() {
+                        @Override
+                        public void onSuccess(List<FirebaseVisionLabel> labels) {
+                          result.success(processImageLabelingResult(labels));
+                        }
+                      })
+              .addOnFailureListener(
+                      new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                          // Task failed with an exception
+                          e.printStackTrace();
+                        }
+                      });
+    } else if (call.method.startsWith("FirebaseVisionFaceDetector#detectFrom")){
+      FirebaseVisionFaceDetector detector;
+      if (call.argument("option") != null) {
+        Map<String, Object> optionsMap = call.argument("option");
+        FirebaseVisionFaceDetectorOptions options =
+                new FirebaseVisionFaceDetectorOptions.Builder()
+                        .setModeType((int)optionsMap.get("modeType"))
+                        .setLandmarkType((int)optionsMap.get("landmarkType"))
+                        .setClassificationType((int)optionsMap.get("classificationType"))
+                        .setMinFaceSize((float)(double)optionsMap.get("minFaceSize"))
+                        .setTrackingEnabled((boolean)optionsMap.get("isTrackingEnabled"))
+                        .build();
+        detector = FirebaseVision.getInstance()
+                .getVisionFaceDetector(options);
+      } else {
+        detector = FirebaseVision.getInstance()
+                .getVisionFaceDetector();
+      }
+      detector.detectInImage(image)
+              .addOnSuccessListener(
+                      new OnSuccessListener<List<FirebaseVisionFace>>() {
+                        @Override
+                        public void onSuccess(List<FirebaseVisionFace> faces) {
+                          result.success(processFaceDetectionResult(faces));
+                        }
+                      })
+              .addOnFailureListener(
+                      new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                          // Task failed with an exception
+                          e.printStackTrace();
+                        }
+                      });
     } else if (call.method.equals("FirebaseModelManager#registerCloudModelSource")) {
       FirebaseModelManager manager = FirebaseModelManager.getInstance();
 
@@ -278,6 +255,7 @@ public class MlkitPlugin implements MethodCallHandler {
       }
     } else if (call.method.equals("FirebaseModelManager#registerLocalModelSource")) {
         FirebaseModelManager manager = FirebaseModelManager.getInstance();
+        // TODO: next release
 
     } else if (call.method.equals("FirebaseModelInterpreter#run")) {
       FirebaseModelInterpreter mInterpreter;
@@ -347,7 +325,7 @@ public class MlkitPlugin implements MethodCallHandler {
         Log.e("error",e.getMessage());
         return;
       }
-    }else {
+    } else {
       result.notImplemented();
     }
   }

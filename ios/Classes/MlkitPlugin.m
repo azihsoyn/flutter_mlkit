@@ -41,14 +41,34 @@ NSDictionary *landmarkTypeMap;
     return self;
 }
 
+UIImage* imageFromImageSourceWithData(NSData *data) {
+  CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+  CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+  CFRelease(imageSource);
+  UIImage *image = [UIImage imageWithCGImage:imageRef];
+  CGImageRelease(imageRef);
+  return image;
+}
+
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     FIRVision *vision = [FIRVision vision];
     NSMutableArray *ret = [NSMutableArray array];
-    NSString *path = call.arguments[@"filepath"];
-    UIImage* uiImage = [UIImage imageWithContentsOfFile:path];
+    UIImage* uiImage = NULL;
+    
+    if ([call.method hasSuffix:@"#detectFromPath"]) {
+        NSString *path = call.arguments[@"filepath"];
+        uiImage = [UIImage imageWithContentsOfFile:path];
+    } else if ([call.method hasSuffix:@"#detectFromBinary"]) {
+        FlutterStandardTypedData* typedData = call.arguments[@"binary"];
+        uiImage = [UIImage imageWithData: typedData.data];
+    } else {
+        result(FlutterMethodNotImplemented);
+        return;
+    }
+    
     FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
     
-    if ([@"FirebaseVisionTextDetector#detectFromPath" isEqualToString:call.method]) {
+    if ([call.method hasPrefix:@"FirebaseVisionTextDetector#detectFrom"]) {
         textDetector = [vision textDetector];
         [textDetector detectInImage:image
                          completion:^(NSArray<FIRVisionText *> *features,
@@ -85,12 +105,7 @@ NSDictionary *landmarkTypeMap;
                              result(ret);
                              return;
                          }];
-    } else if ([@"FirebaseVisionBarcodeDetector#detectFromPath" isEqualToString:call.method]) {
-        /*
-         FIRVisionBarcodeDetectorOptions *options = [[FIRVisionBarcodeDetectorOptions alloc]
-         initWithFormats: FIRVisionBarcodeFormatAll];
-         barcodeDetector = [vision barcodeDetectorWithOptions:options];
-         */
+    } else if ([call.method hasPrefix:@"FirebaseVisionBarcodeDetector#detectFrom"]) {
         barcodeDetector = [vision barcodeDetector];
         [barcodeDetector detectInImage:image
                             completion:^(NSArray<FIRVisionBarcode *> *barcodes,
@@ -108,7 +123,7 @@ NSDictionary *landmarkTypeMap;
                                 result(ret);
                                 return;
                             }];
-    } else if ([@"FirebaseVisionFaceDetector#detectFromPath" isEqualToString:call.method]) {
+    } else if ([call.method hasPrefix:@"FirebaseVisionFaceDetector#detectFrom"]) {
         if(call.arguments[@"option"] != [NSNull null] ){
             FIRVisionFaceDetectorOptions *options = [[FIRVisionFaceDetectorOptions alloc] init];
             NSNumber *modeType = call.arguments[@"option"][@"modeType"];
@@ -146,7 +161,7 @@ NSDictionary *landmarkTypeMap;
                              result(ret);
                              return;
                          }];
-    } else if ([@"FirebaseVisionLabelDetector#detectFromPath" isEqualToString:call.method]){
+    } else if ([call.method hasPrefix:@"FirebaseVisionLabelDetector#detectFrom"]) {
         labelDetector = [vision labelDetector];
         [labelDetector detectInImage:(FIRVisionImage *)image
                           completion:^(NSArray<FIRVisionLabel *> *labels,

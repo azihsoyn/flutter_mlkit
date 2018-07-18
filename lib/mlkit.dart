@@ -75,6 +75,17 @@ class FirebaseVisionTextDetector {
 
   FirebaseVisionTextDetector._() {}
 
+  Future<List<VisionText>> detectFromBinary(Uint8List binary) async {
+    List<dynamic> texts = await _channel.invokeMethod(
+        "FirebaseVisionTextDetector#detectFromBinary", {'binary': binary});
+    List<VisionText> ret = [];
+    texts.forEach((dynamic item) {
+      final VisionTextBlock text = new VisionTextBlock._(item);
+      ret.add(text);
+    });
+    return ret;
+  }
+
   Future<List<VisionText>> detectFromPath(String filepath) async {
     List<dynamic> texts = await _channel.invokeMethod(
         "FirebaseVisionTextDetector#detectFromPath", {'filepath': filepath});
@@ -95,6 +106,23 @@ class FirebaseVisionBarcodeDetector {
       new FirebaseVisionBarcodeDetector._();
 
   FirebaseVisionBarcodeDetector._() {}
+
+  Future<List<VisionBarcode>> detectFromBinary(Uint8List binary) async {
+    try {
+      List<dynamic> barcodes = await _channel.invokeMethod(
+          "FirebaseVisionBarcodeDetector#detectFromBinary", {'binary': binary});
+      List<VisionBarcode> ret = [];
+      barcodes.forEach((dynamic item) {
+        final VisionBarcode barcode = new VisionBarcode._(item);
+        ret.add(barcode);
+      });
+      return ret;
+    } catch (e) {
+      print(
+          "Error on FirebaseVisionBarcodeDetector#detectFromBinary : ${e.toString()}");
+    }
+    return null;
+  }
 
   Future<List<VisionBarcode>> detectFromPath(String filepath) async {
     try {
@@ -123,6 +151,28 @@ class FirebaseVisionFaceDetector {
       new FirebaseVisionFaceDetector._();
 
   FirebaseVisionFaceDetector._() {}
+
+  Future<List<VisionFace>> detectFromBinary(Uint8List binary,
+      [VisionFaceDetectorOptions option]) async {
+    try {
+      List<dynamic> faces = await _channel
+          .invokeMethod("FirebaseVisionFaceDetector#detectFromBinary", {
+        'binary': binary,
+        'option': option?.asDictionary(),
+      });
+      List<VisionFace> ret = [];
+      faces.forEach((dynamic item) {
+        print("item : ${item}");
+        final VisionFace face = new VisionFace._(item);
+        ret.add(face);
+      });
+      return ret;
+    } catch (e) {
+      print(
+          "Error on FirebaseVisionFaceDetector#detectFromBinary : ${e.toString()}");
+    }
+    return null;
+  }
 
   Future<List<VisionFace>> detectFromPath(String filepath,
       [VisionFaceDetectorOptions option]) async {
@@ -155,6 +205,24 @@ class FirebaseVisionLabelDetector {
       new FirebaseVisionLabelDetector._();
 
   FirebaseVisionLabelDetector._() {}
+
+  Future<List<VisionLabel>> detectFromBinary(Uint8List binary) async {
+    try {
+      List<dynamic> labels = await _channel.invokeMethod(
+          "FirebaseVisionLabelDetector#detectFromBinary", {'binary': binary});
+      List<VisionLabel> ret = [];
+      labels.forEach((dynamic item) {
+        print("item : ${item}");
+        final VisionLabel label = new VisionLabel._(item);
+        ret.add(label);
+      });
+      return ret;
+    } catch (e) {
+      print(
+          "Error on FirebaseVisionLabelDetector#detectFromBinary : ${e.toString()}");
+    }
+    return null;
+  }
 
   Future<List<VisionLabel>> detectFromPath(String filepath) async {
     try {
@@ -251,17 +319,12 @@ class FirebaseModelManager {
 
   FirebaseModelManager._() {}
 
-  Future<List<dynamic>> registerCloudModelSource(
+  Future<void> registerCloudModelSource(
       FirebaseCloudModelSource cloudSource) async {
     try {
-      List<dynamic> barcodes = await _channel.invokeMethod(
+      await _channel.invokeMethod(
           "FirebaseModelManager#registerCloudModelSource",
           {'source': cloudSource.asDictionary()});
-      List<dynamic> ret = [];
-      barcodes.forEach((dynamic item) {
-        print("item : ${item}");
-      });
-      return ret;
     } catch (e) {
       print(
           "Error on FirebaseModelManager#registerCloudModelSource : ${e.toString()}");
@@ -269,16 +332,11 @@ class FirebaseModelManager {
     return null;
   }
 
-  Future<List<dynamic>> registerLocalModelSource(String filepath) async {
+  Future<void> registerLocalModelSource(String filepath) async {
     try {
-      List<dynamic> barcodes = await _channel.invokeMethod(
+      await _channel.invokeMethod(
           "FirebaseModelManager#registerLocalModelSource",
           {'source': FirebaseLocalModelSource().asDictionary()});
-      List<dynamic> ret = [];
-      barcodes.forEach((dynamic item) {
-        print("item : ${item}");
-      });
-      return ret;
     } catch (e) {
       print(
           "Error on FirebaseModelManager#registerLocalModelSource : ${e.toString()}");
