@@ -12,3 +12,4 @@ example/android/app/local.properties
 example/ios/Podfile.lock
 example/.idea
 *.swp
+pubspec.lock
