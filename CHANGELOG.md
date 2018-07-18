@@ -1,3 +1,7 @@
+## 0.6.0
+
+* support custom model interpreter for android (cloud hosting model only).
+
 ## 0.5.0
 
 * Added functionality to detect from binary
