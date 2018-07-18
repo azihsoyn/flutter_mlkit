@@ -21,6 +21,7 @@ A new flutter plugin project.
   s.dependency 'Firebase/MLVisionBarcodeModel'
   s.dependency 'Firebase/MLVisionFaceModel'
   s.dependency 'Firebase/MLVisionLabelModel'
+  s.dependency 'Firebase/MLModelInterpreter'
   
   s.ios.deployment_target = '8.0'
 end

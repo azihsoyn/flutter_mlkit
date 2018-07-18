@@ -22,7 +22,7 @@ The flutter team now has the [firebase_ml_vision](https://pub.dartlang.org/packa
 | Label Images(on device)        | ✅      | ✅  |
 | Label Images(cloud)            | yet     | yet |
 | Recognize landmarks(cloud)     | yet     | yet |
-| Custom model                   | yet     | yet |
+| Custom model                   | ✅      | yet |
 
 [What features are available on device or in the cloud?](https://firebase.google.com/docs/ml-kit/)
 
@@ -61,4 +61,48 @@ var currentLabels = await detector.detectFromPath(_file?.path);
 
 // Detect from binary data of a file/image
 var currentLabels = await detector.detectFromBinary(_file?.readAsBytesSync());
+```
+
+#### custom model interpreter
+
+[native sample code](https://github.com/googlecodelabs/mlkit-android/blob/master/custom-model/final/app/src/main/java/com/google/firebase/codelab/mlkit_custommodel/MainActivity.java)
+
+```dart
+import 'package:mlkit/mlkit.dart';
+import 'package:image/image.dart' as img;
+
+FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.instance;
+FirebaseModelManager manager = FirebaseModelManager.instance;
+manager.registerCloudModelSource(
+        FirebaseCloudModelSource(modelName: "mobilenet_v1_224_quant"));
+
+var imageBytes = (await rootBundle.load("assets/mountain.jpg")).buffer;
+img.Image image = img.decodeJpg(imageBytes.asUint8List());
+image = img.copyResize(image, 224, 224);
+var results = await interpreter.run(
+                    "mobilenet_v1_224_quant",
+                    FirebaseModelInputOutputOptions(
+                        0,
+                        FirebaseModelDataType.BYTE,
+                        [1, 224, 224, 3],
+                        0,
+                        FirebaseModelDataType.BYTE,
+                        [1, 1001]),
+                    imageToByteList(image));
+
+Uint8List imageToByteList(img.Image image) {
+    var _inputSize = 224;
+    var convertedBytes = new Uint8List(1 * _inputSize * _inputSize * 3);
+    var buffer = new ByteData.view(convertedBytes.buffer);
+    int pixelIndex = 0;
+    for (var i = 0; i < _inputSize; i++) {
+      for (var j = 0; j < _inputSize; j++) {
+        var pixel = image.getPixel(i, j);
+        buffer.setUint8(pixelIndex++, (pixel >> 16) & 0xFF);
+        buffer.setUint8(pixelIndex++, (pixel >> 8) & 0xFF);
+        buffer.setUint8(pixelIndex++, (pixel) & 0xFF);
+      }
+    }
+    return convertedBytes;
+  }
 ```

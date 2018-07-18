@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
+import 'package:meta/meta.dart';
 
 class VisionText {
   final Map<dynamic, dynamic> _data;
@@ -239,6 +240,177 @@ class FirebaseVisionLabelDetector {
           "Error on FirebaseVisionLabelDetector#detectFromPath : ${e.toString()}");
     }
     return null;
+  }
+}
+
+class FirebaseModelInterpreter {
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
+
+  static FirebaseModelInterpreter instance = new FirebaseModelInterpreter._();
+
+  FirebaseModelInterpreter._() {}
+
+  Future<List<dynamic>> run(String cloudModelName,
+      FirebaseModelInputOutputOptions options, Uint8List inputBytes) async {
+    try {
+      dynamic results =
+          await _channel.invokeMethod("FirebaseModelInterpreter#run", {
+        'cloudModelName': cloudModelName,
+        'inputOutputOptions': options.asDictionary(),
+        'inputBytes': inputBytes
+      });
+      return results;
+    } catch (e) {
+      print("Error on FirebaseModelInterpreter#run : ${e.toString()}");
+    }
+    return null;
+  }
+}
+
+//class FirebaseModelOptions {}
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelInputOutputOptions.Builder
+class FirebaseModelInputOutputOptions {
+  final int inputIndex;
+  final FirebaseModelDataType inputDataType;
+  final List<int> inputDims;
+  final int outputIndex;
+  final FirebaseModelDataType outputDataType;
+  final List<int> outputDims;
+
+  const FirebaseModelInputOutputOptions(this.inputIndex, this.inputDataType,
+      this.inputDims, this.outputIndex, this.outputDataType, this.outputDims);
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "inputIndex": inputIndex,
+      "inputDataType": inputDataType.value,
+      "inputDims": inputDims,
+      "outputIndex": outputIndex,
+      "outputDataType": outputDataType.value,
+      "outputDims": outputDims,
+    };
+  }
+}
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelDataType.DataType
+class FirebaseModelDataType {
+  final int value;
+  const FirebaseModelDataType._(int value) : value = value;
+
+  static const FLOAT32 = const FirebaseModelDataType._(1);
+  static const INT32 = const FirebaseModelDataType._(2);
+  static const BYTE = const FirebaseModelDataType._(3);
+  static const LONG = const FirebaseModelDataType._(4);
+}
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelManager
+class FirebaseModelManager {
+  //final FirebaseLocalModelSource localModelSource;
+  //final FirebaseCloudModelSource cloudModelSource;
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
+
+  static FirebaseModelManager instance = FirebaseModelManager._();
+
+  FirebaseModelManager._() {}
+
+  Future<void> registerCloudModelSource(
+      FirebaseCloudModelSource cloudSource) async {
+    try {
+      await _channel.invokeMethod(
+          "FirebaseModelManager#registerCloudModelSource",
+          {'source': cloudSource.asDictionary()});
+    } catch (e) {
+      print(
+          "Error on FirebaseModelManager#registerCloudModelSource : ${e.toString()}");
+    }
+    return null;
+  }
+
+  Future<void> registerLocalModelSource(String filepath) async {
+    try {
+      await _channel.invokeMethod(
+          "FirebaseModelManager#registerLocalModelSource",
+          {'source': FirebaseLocalModelSource().asDictionary()});
+    } catch (e) {
+      print(
+          "Error on FirebaseModelManager#registerLocalModelSource : ${e.toString()}");
+    }
+    return null;
+  }
+}
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/model/FirebaseLocalModelSource
+class FirebaseLocalModelSource {
+  final String modelName;
+  final String filePath;
+  final String assetFilePath;
+
+  FirebaseLocalModelSource({
+    @required this.modelName,
+    @required this.filePath,
+    @required this.assetFilePath,
+  });
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "modelName": modelName,
+      "filePath": filePath,
+      "assetFilePath": assetFilePath
+    };
+  }
+}
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/model/FirebaseCloudModelSource
+class FirebaseCloudModelSource {
+  final String modelName;
+  final bool enableModelUpdates;
+  final FirebaseModelDownloadConditions initialDownloadConditions;
+  final FirebaseModelDownloadConditions updatesDownloadConditions;
+
+  static const _defaultCondition = FirebaseModelDownloadConditions();
+
+  FirebaseCloudModelSource(
+      {@required this.modelName,
+      this.enableModelUpdates: false,
+      this.initialDownloadConditions: _defaultCondition,
+      this.updatesDownloadConditions: _defaultCondition});
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "modelName": modelName,
+      "enableModelUpdates": enableModelUpdates,
+      "initialDownloadConditions": initialDownloadConditions.asDictionary(),
+      "updatesDownloadConditions": updatesDownloadConditions.asDictionary(),
+    };
+  }
+}
+
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/model/FirebaseModelDownloadConditions
+class FirebaseModelDownloadConditions {
+  final bool requireWifi;
+  final bool requireDeviceIdle;
+  final bool requireCharging;
+
+  const FirebaseModelDownloadConditions(
+      {this.requireCharging: false,
+      this.requireDeviceIdle: false,
+      this.requireWifi: false});
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "requireWifi": requireWifi,
+      "requireDeviceIdle": requireDeviceIdle,
+      "requireCharging": requireCharging
+    };
   }
 }
 

@@ -18,6 +18,8 @@ import com.google.common.collect.ImmutableMap;
 import android.support.annotation.NonNull;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
@@ -34,18 +36,39 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabel;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabelDetector;
+import com.google.firebase.ml.common.FirebaseMLException;
+import com.google.firebase.ml.custom.FirebaseModelDataType;
+import com.google.firebase.ml.custom.FirebaseModelInputOutputOptions;
+import com.google.firebase.ml.custom.FirebaseModelInputs;
+import com.google.firebase.ml.custom.FirebaseModelInterpreter;
+import com.google.firebase.ml.custom.FirebaseModelManager;
+import com.google.firebase.ml.custom.FirebaseModelOptions;
+import com.google.firebase.ml.custom.FirebaseModelOutputs;
+import com.google.firebase.ml.custom.model.FirebaseCloudModelSource;
+import com.google.firebase.ml.custom.model.FirebaseLocalModelSource;
+import com.google.firebase.ml.custom.model.FirebaseModelDownloadConditions;
 import android.graphics.Bitmap;
 import android.media.Image;
 import java.io.IOException;
 import android.util.Log;
+import android.util.Pair;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.PriorityQueue;
+import java.util.Comparator;
 
 /**
  * MlkitPlugin
@@ -188,9 +211,140 @@ public class MlkitPlugin implements MethodCallHandler {
                           e.printStackTrace();
                         }
                       });
+    } else if (call.method.equals("FirebaseModelManager#registerCloudModelSource")) {
+      FirebaseModelManager manager = FirebaseModelManager.getInstance();
+
+      if (call.argument("source") != null) {
+        Map<String, Object> sourceMap = call.argument("source");
+        String modelName = (String)sourceMap.get("modelName");
+        Boolean enableModelUpdates = (Boolean)sourceMap.get("enableModelUpdates");
+        FirebaseCloudModelSource.Builder cloudSourceBuilder = new FirebaseCloudModelSource.Builder(modelName);
+        cloudSourceBuilder.enableModelUpdates(enableModelUpdates);
+
+        if(sourceMap.get("initialDownloadConditions") != null) {
+          Map<String, Boolean> conditionMap = (Map<String, Boolean>)sourceMap.get("initialDownloadConditions");
+          FirebaseModelDownloadConditions.Builder conditionsBuilder = new FirebaseModelDownloadConditions.Builder();
+          if(conditionMap.get("requireWifi")) {
+            conditionsBuilder.requireWifi();
+          }
+          if(conditionMap.get("requireDeviceIdle")) {
+            conditionsBuilder.requireDeviceIdle();
+          }
+          if(conditionMap.get("requireCharging")) {
+            conditionsBuilder.requireCharging();
+          }
+          cloudSourceBuilder.setInitialDownloadConditions(conditionsBuilder.build());
+        }
+
+        if(sourceMap.get("updatesDownloadConditions") != null) {
+          Map<String, Boolean> conditionMap = (Map<String, Boolean>)sourceMap.get("updatesDownloadConditions");
+          FirebaseModelDownloadConditions.Builder conditionsBuilder = new FirebaseModelDownloadConditions.Builder();
+          if(conditionMap.get("requireWifi")) {
+            conditionsBuilder.requireWifi();
+          }
+          if(conditionMap.get("requireDeviceIdle")) {
+            conditionsBuilder.requireDeviceIdle();
+          }
+          if(conditionMap.get("requireCharging")) {
+            conditionsBuilder.requireCharging();
+          }
+          cloudSourceBuilder.setUpdatesDownloadConditions(conditionsBuilder.build());
+        }
+
+        manager.registerCloudModelSource(cloudSourceBuilder.build());
+      }
+    } else if (call.method.equals("FirebaseModelManager#registerLocalModelSource")) {
+        FirebaseModelManager manager = FirebaseModelManager.getInstance();
+        // TODO: next release
+
+    } else if (call.method.equals("FirebaseModelInterpreter#run")) {
+      FirebaseModelInterpreter mInterpreter;
+      String cloudModelName = call.argument("cloudModelName");
+      try {
+        FirebaseModelOptions modelOptions = new FirebaseModelOptions.Builder()
+                .setCloudModelName(cloudModelName)
+                // TODO: local model
+                //.setLocalModelName("my_local_model")
+                .build();
+
+        Map<String, Object> inputOutputOptionsMap = call.argument("inputOutputOptions");
+        int inputIndex = (int)inputOutputOptionsMap.get("inputIndex");
+        int inputDataType = (int)inputOutputOptionsMap.get("inputDataType");
+        ArrayList<Integer> _inputDims = (ArrayList<Integer>)inputOutputOptionsMap.get("inputDims");
+        final int[] inputDims = toArray(_inputDims);
+        int outputIndex = (int)inputOutputOptionsMap.get("outputIndex");
+        final int outputDataType = (int)inputOutputOptionsMap.get("outputDataType");
+        ArrayList<Integer> _outputDims = (ArrayList<Integer>)inputOutputOptionsMap.get("outputDims");
+        int[] outputDims = toArray(_outputDims);
+        FirebaseModelInputOutputOptions inputOutputOptions =
+                new FirebaseModelInputOutputOptions.Builder()
+                        .setInputFormat(inputIndex, inputDataType, inputDims)
+                        .setOutputFormat(outputIndex, outputDataType, outputDims)
+                        .build();
+
+        byte[] data = (byte[])call.argument("inputBytes");
+
+        mInterpreter = FirebaseModelInterpreter.getInstance(modelOptions);
+        ByteBuffer buffer = ByteBuffer.allocateDirect(toDim(_inputDims));
+        buffer.order(ByteOrder.nativeOrder());
+        buffer.rewind();
+        buffer.put(data);
+
+        FirebaseModelInputs inputs = new FirebaseModelInputs.Builder().add(buffer).build();
+        mInterpreter
+                .run(inputs, inputOutputOptions)
+                .addOnFailureListener(new OnFailureListener() {
+                  @Override
+                  public void onFailure(@NonNull Exception e) {
+                    e.printStackTrace();
+                    Log.e("error", e.toString());
+                    return;
+                  }
+                })
+                .continueWith(
+                        new Continuation<FirebaseModelOutputs, List<String>>() {
+                          @Override
+                          public List<String> then(Task<FirebaseModelOutputs> task) {
+                            switch(outputDataType){
+                              case FirebaseModelDataType.BYTE:
+                                result.success(task.getResult().<byte[][]>getOutput(0)[0]);
+                              case FirebaseModelDataType.FLOAT32:
+                                result.success(task.getResult().<float[][]>getOutput(0)[0]);
+                              case FirebaseModelDataType.INT32:
+                                result.success(task.getResult().<int[][]>getOutput(0)[0]);
+                              case FirebaseModelDataType.LONG:
+                                result.success(task.getResult().<long[][]>getOutput(0)[0]);
+                              default:
+                                result.success(null);
+                            }
+                            return null;
+                          }
+                        });
+      } catch (FirebaseMLException e) {
+        e.printStackTrace();
+        Log.e("error",e.getMessage());
+        return;
+      }
     } else {
       result.notImplemented();
     }
+  }
+
+  public static int[] toArray(ArrayList<Integer> list){
+    // List<Integer> -> int[]
+    int l = list.size();
+    int[] arr = new int[l];
+    Iterator<Integer> iter = list.iterator();
+    for (int i=0;i<l;i++) arr[i] = iter.next();
+    return arr;
+  }
+
+  public static int toDim(ArrayList<Integer> list){
+    int l = list.size();
+    int dim = 1;
+    Iterator<Integer> iter = list.iterator();
+    for (int i=0;i<l;i++) dim = dim * iter.next();
+    return dim;
   }
 
   private ImmutableList<ImmutableMap<String, Object>> processBarcodeRecognitionResult(List<FirebaseVisionBarcode> barcodes) {
