@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
@@ -182,27 +183,16 @@ class FirebaseModelInterpreter {
 
   FirebaseModelInterpreter._() {}
 
-  Future<List<dynamic>> run(
-      String cloudModelName, FirebaseModelInputOutputOptions options) async {
+  Future<List<dynamic>> run(String cloudModelName,
+      FirebaseModelInputOutputOptions options, Uint8List inputBytes) async {
     try {
-      print("hoge 1");
-      dynamic results = await _channel.invokeMethod(
-          "FirebaseModelInterpreter#run", {
+      dynamic results =
+          await _channel.invokeMethod("FirebaseModelInterpreter#run", {
         'cloudModelName': cloudModelName,
-        'inputOutputOptions': options.asDictionary()
+        'inputOutputOptions': options.asDictionary(),
+        'inputBytes': inputBytes
       });
-      print("hoge 2");
-      List<dynamic> ret = [];
-      print("ModelInterpreter results : ${results}");
-      print("ModelInterpreter results length : ${results.length}");
-      for (var i = 0; i < results.length; i++) {
-        int item = results[i];
-        if (item != 0) {
-          print("i : ${i}, item : ${item}, type : ${item.runtimeType}");
-        }
-      }
-      ;
-      return ret;
+      return results;
     } catch (e) {
       print("Error on FirebaseModelInterpreter#run : ${e.toString()}");
     }

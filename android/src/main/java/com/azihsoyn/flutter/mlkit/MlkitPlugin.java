@@ -75,7 +75,6 @@ import java.util.Comparator;
  */
 public class MlkitPlugin implements MethodCallHandler {
   private static Context context;
-  private static List<String> mLabelList;
 
   private final PriorityQueue<Map.Entry<String, Float>> sortedLabels =
           new PriorityQueue<>(
@@ -107,7 +106,6 @@ public class MlkitPlugin implements MethodCallHandler {
     final MethodChannel channel = new MethodChannel(registrar.messenger(), "plugins.flutter.io/mlkit");
     channel.setMethodCallHandler(new MlkitPlugin());
     context = registrar.context();
-    mLabelList = loadLabelList(context);
   }
 
   @Override
@@ -287,6 +285,7 @@ public class MlkitPlugin implements MethodCallHandler {
       try {
         FirebaseModelOptions modelOptions = new FirebaseModelOptions.Builder()
                 .setCloudModelName(cloudModelName)
+                // TODO: local model
                 //.setLocalModelName("my_local_model")
                 .build();
 
@@ -296,7 +295,7 @@ public class MlkitPlugin implements MethodCallHandler {
         ArrayList<Integer> _inputDims = (ArrayList<Integer>)inputOutputOptionsMap.get("inputDims");
         final int[] inputDims = toArray(_inputDims);
         int outputIndex = (int)inputOutputOptionsMap.get("outputIndex");
-        int outputDataType = (int)inputOutputOptionsMap.get("outputDataType");
+        final int outputDataType = (int)inputOutputOptionsMap.get("outputDataType");
         ArrayList<Integer> _outputDims = (ArrayList<Integer>)inputOutputOptionsMap.get("outputDims");
         int[] outputDims = toArray(_outputDims);
         FirebaseModelInputOutputOptions inputOutputOptions =
@@ -305,11 +304,15 @@ public class MlkitPlugin implements MethodCallHandler {
                         .setOutputFormat(outputIndex, outputDataType, outputDims)
                         .build();
 
+        byte[] data = (byte[])call.argument("inputBytes");
+
         mInterpreter = FirebaseModelInterpreter.getInstance(modelOptions);
-        Bitmap bmp = getBitmapFromAsset(context, "mountain.jpg");
-        ByteBuffer imgData = convertBitmapToByteBuffer(bmp, bmp.getWidth(),
-                bmp.getHeight());
-        FirebaseModelInputs inputs = new FirebaseModelInputs.Builder().add(imgData).build();
+        ByteBuffer buffer = ByteBuffer.allocateDirect(toDim(_inputDims));
+        buffer.order(ByteOrder.nativeOrder());
+        buffer.rewind();
+        buffer.put(data);
+
+        FirebaseModelInputs inputs = new FirebaseModelInputs.Builder().add(buffer).build();
         mInterpreter
                 .run(inputs, inputOutputOptions)
                 .addOnFailureListener(new OnFailureListener() {
@@ -324,15 +327,19 @@ public class MlkitPlugin implements MethodCallHandler {
                         new Continuation<FirebaseModelOutputs, List<String>>() {
                           @Override
                           public List<String> then(Task<FirebaseModelOutputs> task) {
-                            byte[][] labelProbArray = task.getResult()
-                                    .<byte[][]>getOutput(0);
-                            Log.d("prob", ((labelProbArray[0][980]&0xff)/ 255.0f)+"");
-                            Log.d("prob", ((labelProbArray[0][981]&0xff)/ 255.0f)+"");
-                            Log.d("prob", ((labelProbArray[0][982]&0xff)/ 255.0f)+"");
-                            List<String> topLabels = getTopLabels(labelProbArray);
-                            Log.d("topLabels", topLabels.toString());
-                            result.success(task.getResult().<byte[][]>getOutput(0)[0]);
-                            return topLabels;
+                            switch(outputDataType){
+                              case FirebaseModelDataType.BYTE:
+                                result.success(task.getResult().<byte[][]>getOutput(0)[0]);
+                              case FirebaseModelDataType.FLOAT32:
+                                result.success(task.getResult().<float[][]>getOutput(0)[0]);
+                              case FirebaseModelDataType.INT32:
+                                result.success(task.getResult().<int[][]>getOutput(0)[0]);
+                              case FirebaseModelDataType.LONG:
+                                result.success(task.getResult().<long[][]>getOutput(0)[0]);
+                              default:
+                                result.success(null);
+                            }
+                            return null;
                           }
                         });
       } catch (FirebaseMLException e) {
@@ -345,100 +352,6 @@ public class MlkitPlugin implements MethodCallHandler {
     }
   }
 
-  public static Bitmap getBitmapFromAsset(Context context, String filePath) {
-    AssetManager assetManager = context.getAssets();
-
-    InputStream is;
-    Bitmap mSelectedImage = null;
-    try {
-      is = assetManager.open(filePath);
-      mSelectedImage = BitmapFactory.decodeStream(is);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
-    if (mSelectedImage != null) {
-      int targetWidth = 1440;
-      int maxHeight = 2418;
-
-      // Determine how much to scale down the image
-      float scaleFactor =
-              Math.max(
-                      (float) mSelectedImage.getWidth() / (float) targetWidth,
-                      (float) mSelectedImage.getHeight() / (float) maxHeight);
-
-      Bitmap resizedBitmap =
-              Bitmap.createScaledBitmap(
-                      mSelectedImage,
-                      (int) (mSelectedImage.getWidth() / scaleFactor),
-                      (int) (mSelectedImage.getHeight() / scaleFactor),
-                      true);
-
-      mSelectedImage = resizedBitmap;
-    }
-
-    return mSelectedImage;
-  }
-
-  private static List<String> loadLabelList(Context context) {
-    List<String> labelList = new ArrayList<>();
-    try (BufferedReader reader =
-                 new BufferedReader(new InputStreamReader(context.getAssets().open
-                         ("labels.txt")))) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        labelList.add(line);
-      }
-    } catch (IOException e) {
-      Log.e("error loadLabelList", "Failed to read label list.", e);
-    }
-    return labelList;
-  }
-
-  private synchronized ByteBuffer convertBitmapToByteBuffer(
-          Bitmap bitmap, int width, int height) {
-    ByteBuffer imgData =
-            ByteBuffer.allocateDirect(
-                    1 * 224 * 224 * 3);
-    imgData.order(ByteOrder.nativeOrder());
-    Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224,
-            true);
-    imgData.rewind();
-    int[] intValues = new int[224 * 224];
-    scaledBitmap.getPixels(intValues, 0, scaledBitmap.getWidth(), 0, 0,
-            scaledBitmap.getWidth(), scaledBitmap.getHeight());
-    // Convert the image to int points.
-    int pixel = 0;
-    for (int i = 0; i < 224; ++i) {
-      for (int j = 0; j < 224; ++j) {
-        final int val = intValues[pixel++];
-        imgData.put((byte) ((val >> 16) & 0xFF));
-        imgData.put((byte) ((val >> 8) & 0xFF));
-        imgData.put((byte) (val & 0xFF));
-      }
-    }
-    return imgData;
-  }
-
-  private synchronized List<String> getTopLabels(byte[][] labelProbArray) {
-    for (int i = 0; i < mLabelList.size(); ++i) {
-      sortedLabels.add(
-              new AbstractMap.SimpleEntry<>(mLabelList.get(i), (labelProbArray[0][i] &
-                      0xff) / 255.0f));
-      if (sortedLabels.size() > 5) {
-        sortedLabels.poll();
-      }
-    }
-    List<String> result = new ArrayList<>();
-    final int size = sortedLabels.size();
-    for (int i = 0; i < size; ++i) {
-      Map.Entry<String, Float> label = sortedLabels.poll();
-      result.add(label.getKey() + ":" + label.getValue());
-    }
-    Log.d("labels", "labels: " + result.toString());
-    return result;
-  }
-
   public static int[] toArray(ArrayList<Integer> list){
     // List<Integer> -> int[]
     int l = list.size();
@@ -446,6 +359,14 @@ public class MlkitPlugin implements MethodCallHandler {
     Iterator<Integer> iter = list.iterator();
     for (int i=0;i<l;i++) arr[i] = iter.next();
     return arr;
+  }
+
+  public static int toDim(ArrayList<Integer> list){
+    int l = list.size();
+    int dim = 1;
+    Iterator<Integer> iter = list.iterator();
+    for (int i=0;i<l;i++) dim = dim * iter.next();
+    return dim;
   }
 
   private ImmutableList<ImmutableMap<String, Object>> processBarcodeRecognitionResult(List<FirebaseVisionBarcode> barcodes) {
