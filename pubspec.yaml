@@ -5,6 +5,7 @@ author: azihsoyn <azihsoyn@gmail.com>
 homepage: https://github.com/azihsoyn/flutter_mlkit
 
 dependencies:
+  meta: ^1.1.5
   flutter:
     sdk: flutter
 
