@@ -22,7 +22,7 @@
                         };
 }
 
-FIRVisionTextDetector *textDetector;
+FIRVisionTextRecognizer *textDetector;
 FIRVisionBarcodeDetector *barcodeDetector;
 FIRVisionFaceDetector *faceDetector;
 FIRVisionLabelDetector *labelDetector;
@@ -69,37 +69,18 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
     FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
     
     if ([call.method hasPrefix:@"FirebaseVisionTextDetector#detectFrom"]) {
-        textDetector = [vision textDetector];
-        [textDetector detectInImage:image
-                         completion:^(NSArray<FIRVisionText *> *features,
-                                      NSError *error) {
+        textDetector = [vision onDeviceTextRecognizer];
+        [textDetector processImage:image
+                        completion:^(FIRVisionText *_Nullable resultText,
+                                     NSError *_Nullable error) {
                              if (error != nil) {
                                  [ret addObject:error.localizedDescription];
                                  result(ret);
                                  return;
-                             } else if (features != nil) {
+                             } else if (resultText != nil) {
                                  // Recognized text
-                                 for (id <FIRVisionText> feature in features) {
-                                     // Blocks contain lines of text
-                                     if ([feature isKindOfClass:[FIRVisionTextBlock class]]) {
-                                         FIRVisionTextBlock *block = (FIRVisionTextBlock *)feature;
-                                         [ret addObject:visionTextBlockToDictionary(block)];
-                                     }
-                                     
-                                     // Lines contain text elements
-                                     else if ([feature isKindOfClass:[FIRVisionTextLine class]]) {
-                                         FIRVisionTextLine *line = (FIRVisionTextLine *)feature;
-                                         [ret addObject:visionTextLineToDictionary(line)];
-                                     }
-                                     
-                                     // Text elements are typically words
-                                     else if ([feature isKindOfClass:[FIRVisionTextElement class]]) {
-                                         FIRVisionTextElement *element = (FIRVisionTextElement *)feature;
-                                         [ret addObject:visionTextElementToDictionary(element)];
-                                     }
-                                     else {
-                                         [ret addObject:visionTextToDictionary(feature)];
-                                     }
+                                 for (FIRVisionTextBlock *block in resultText.blocks) {
+                                     [ret addObject:visionTextBlockToDictionary(block)];
                                  }
                              }
                              result(ret);
@@ -181,24 +162,6 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
     }else {
         result(FlutterMethodNotImplemented);
     }
-}
-
-NSDictionary *visionTextToDictionary(id<FIRVisionText> visionText) {
-    __block NSMutableArray<NSDictionary *> *points =[NSMutableArray array];
-    [visionText.cornerPoints enumerateObjectsUsingBlock:^(NSValue * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        [points addObject:@{
-                            @"x": @(((__bridge CGPoint *)obj)->x),
-                            @"y": @(((__bridge CGPoint *)obj)->y),
-                            }];
-    }];
-    return @{
-             @"text" : visionText.text,
-             @"rect_left": @(visionText.frame.origin.x),
-             @"rect_top": @(visionText.frame.origin.y),
-             @"rect_right": @(visionText.frame.origin.x + visionText.frame.size.width),
-             @"rect_bottom": @(visionText.frame.origin.y + visionText.frame.size.height),
-             @"points": points,
-             };
 }
 
 NSDictionary *visionTextBlockToDictionary(FIRVisionTextBlock * visionTextBlock) {
