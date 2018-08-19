@@ -1,3 +1,7 @@
+## 0.6.1
+
+* update ios textDetector implement for firebase API update.
+
 ## 0.6.0
 
 * support custom model interpreter for android (cloud hosting model only).
