@@ -6,10 +6,10 @@ A Flutter plugin to use the Firebase ML Kit.
 
 :star:*Only your star motivate me!*:star:
 
-*Note*: This plugin is still under development, and some APIs might not be available yet. [Feedback](https://github.com/azihsoyn/flutter_mlkit/issues) and [Pull Requests](https://github.com/azihsoyn/flutter_mlkit/pulls) are most welcome!
-
-## official package
+## this is *not official* package
 The flutter team now has the [firebase_ml_vision](https://pub.dartlang.org/packages/firebase_ml_vision) package for Firebase ML Kit. Please consider trying to use firebase_ml_vision. 
+
+*Note*: This plugin is still under development, and some APIs might not be available yet. [Feedback](https://github.com/azihsoyn/flutter_mlkit/issues) and [Pull Requests](https://github.com/azihsoyn/flutter_mlkit/pulls) are most welcome!
 
 ## Features
 
