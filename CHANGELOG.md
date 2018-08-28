@@ -1,3 +1,7 @@
+## 0.6.2
+
+* update flutter environment
+
 ## 0.6.1
 
 * update ios textDetector implement for firebase API update.
