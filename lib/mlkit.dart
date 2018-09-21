@@ -516,6 +516,7 @@ class VisionFace {
   final double rightEyeOpenProbability;
   final double leftEyeOpenProbability;
   final bool hasLeftEyeOpenProbability;
+  final bool hasRightEyeOpenProbability;
 
   VisionFace._(this._data)
       : rect = Rect.fromLTRB(_data['rect_left'], _data['rect_top'],
@@ -525,7 +526,9 @@ class VisionFace {
         headEulerAngleZ = _data['head_euler_angle_z'],
         smilingProbability = _data['smiling_probability'],
         rightEyeOpenProbability = _data['right_eye_open_probability'],
-        leftEyeOpenProbability = _data['left_eye_open_probability'];
+        leftEyeOpenProbability = _data['left_eye_open_probability'],
+        hasLeftEyeOpenProbability = _data['has_left_eye_open_probability'],
+        hasRightEyeOpenProbability = _data['has_right_eye_open_probability'];
 
   VisionFaceLandmark getLandmark(FaceLandmarkType type) =>
       _data['landmarks'][type.value] == null
