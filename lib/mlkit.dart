@@ -923,8 +923,8 @@ class VisionBarcodeCalendarEvent {
         organizer = data['organizer'] ?? null,
         status = data['status'] ?? null,
         summary = data['summary'] ?? null,
-        start = data['start'] ?? null,
-        end = data['end'] ?? null;
+        start = data['start'] == null ? null : DateTime.parse(data['start']),
+        end = data['end'] == null ? null : DateTime.parse(data['end']);
   final String eventDescription;
   final String location;
   final String organizer;

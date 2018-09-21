@@ -467,8 +467,8 @@ public class MlkitPlugin implements MethodCallHandler {
           typeValueBuilder.put("organizer", barcode.getCalendarEvent().getOrganizer());
           typeValueBuilder.put("status", barcode.getCalendarEvent().getStatus());
           typeValueBuilder.put("summary", barcode.getCalendarEvent().getSummary());
-          typeValueBuilder.put("start", barcode.getCalendarEvent().getStart());
-          typeValueBuilder.put("end", barcode.getCalendarEvent().getEnd());
+          typeValueBuilder.put("start", barcode.getCalendarEvent().getStart().getRawValue());
+          typeValueBuilder.put("end", barcode.getCalendarEvent().getEnd().getRawValue());
           barcodeBuilder.put("calendar_event", typeValueBuilder.build());
           break;
         case FirebaseVisionBarcode.TYPE_DRIVER_LICENSE:
