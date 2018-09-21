@@ -1,6 +1,10 @@
+## 0.6.3
+
+* update dependency and [bug](https://github.com/azihsoyn/flutter_mlkit/issues/30) fix.
+
 ## 0.6.2
 
-* update flutter environment
+* update flutter environment.
 
 ## 0.6.1
 
