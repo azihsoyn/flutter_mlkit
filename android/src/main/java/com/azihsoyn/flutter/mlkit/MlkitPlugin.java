@@ -74,8 +74,6 @@ import java.util.Comparator;
  * MlkitPlugin
  */
 public class MlkitPlugin implements MethodCallHandler {
-  private static Context context;
-
   private static final List<Integer> LandmarkTypes = Collections.unmodifiableList( new ArrayList<Integer>() {{
     add(FirebaseVisionFaceLandmark.BOTTOM_MOUTH);
     add(FirebaseVisionFaceLandmark.RIGHT_MOUTH);
@@ -88,6 +86,8 @@ public class MlkitPlugin implements MethodCallHandler {
     add(FirebaseVisionFaceLandmark.LEFT_CHEEK);
     add(FirebaseVisionFaceLandmark.NOSE_BASE);
   }} );
+  private static Context context;
+
   /**
    * Plugin registration.
    */
@@ -95,6 +95,23 @@ public class MlkitPlugin implements MethodCallHandler {
     final MethodChannel channel = new MethodChannel(registrar.messenger(), "plugins.flutter.io/mlkit");
     channel.setMethodCallHandler(new MlkitPlugin());
     context = registrar.context();
+  }
+
+  public static int[] toArray(ArrayList<Integer> list){
+    // List<Integer> -> int[]
+    int l = list.size();
+    int[] arr = new int[l];
+    Iterator<Integer> iter = list.iterator();
+    for (int i=0;i<l;i++) arr[i] = iter.next();
+    return arr;
+  }
+
+  public static int toDim(ArrayList<Integer> list){
+    int l = list.size();
+    int dim = 1;
+    Iterator<Integer> iter = list.iterator();
+    for (int i=0;i<l;i++) dim = dim * iter.next();
+    return dim;
   }
 
   @Override
@@ -116,8 +133,6 @@ public class MlkitPlugin implements MethodCallHandler {
       byte[] bytes = call.argument("binary");
       Bitmap bitmap = BitmapFactory.decodeByteArray(bytes , 0, bytes.length);
       image = FirebaseVisionImage.fromBitmap(bitmap);
-    } else {
-      result.notImplemented();
     }
 
     if (call.method.startsWith("FirebaseVisionTextDetector#detectFrom")) {
@@ -328,23 +343,6 @@ public class MlkitPlugin implements MethodCallHandler {
     } else {
       result.notImplemented();
     }
-  }
-
-  public static int[] toArray(ArrayList<Integer> list){
-    // List<Integer> -> int[]
-    int l = list.size();
-    int[] arr = new int[l];
-    Iterator<Integer> iter = list.iterator();
-    for (int i=0;i<l;i++) arr[i] = iter.next();
-    return arr;
-  }
-
-  public static int toDim(ArrayList<Integer> list){
-    int l = list.size();
-    int dim = 1;
-    Iterator<Integer> iter = list.iterator();
-    for (int i=0;i<l;i++) dim = dim * iter.next();
-    return dim;
   }
 
   private ImmutableList<ImmutableMap<String, Object>> processBarcodeRecognitionResult(List<FirebaseVisionBarcode> barcodes) {
