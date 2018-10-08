@@ -42,12 +42,12 @@ NSDictionary *landmarkTypeMap;
 }
 
 UIImage* imageFromImageSourceWithData(NSData *data) {
-  CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
-  CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
-  CFRelease(imageSource);
-  UIImage *image = [UIImage imageWithCGImage:imageRef];
-  CGImageRelease(imageRef);
-  return image;
+    CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+    CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+    CFRelease(imageSource);
+    UIImage *image = [UIImage imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
+    return image;
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
@@ -73,19 +73,19 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
         [textDetector processImage:image
                         completion:^(FIRVisionText *_Nullable resultText,
                                      NSError *_Nullable error) {
-                             if (error != nil) {
-                                 [ret addObject:error.localizedDescription];
-                                 result(ret);
-                                 return;
-                             } else if (resultText != nil) {
-                                 // Recognized text
-                                 for (FIRVisionTextBlock *block in resultText.blocks) {
-                                     [ret addObject:visionTextBlockToDictionary(block)];
-                                 }
-                             }
-                             result(ret);
-                             return;
-                         }];
+                            if (error != nil) {
+                                [ret addObject:error.localizedDescription];
+                                result(ret);
+                                return;
+                            } else if (resultText != nil) {
+                                // Recognized text
+                                for (FIRVisionTextBlock *block in resultText.blocks) {
+                                    [ret addObject:visionTextBlockToDictionary(block)];
+                                }
+                            }
+                            result(ret);
+                            return;
+                        }];
     } else if ([call.method hasPrefix:@"FirebaseVisionBarcodeDetector#detectFrom"]) {
         barcodeDetector = [vision barcodeDetector];
         [barcodeDetector detectInImage:image
@@ -159,6 +159,7 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                               result(ret);
                               return;
                           }];
+    } else if ([call.method hasPrefix:@"FirebaseVisionLabelDetector#detectFrom"]) {
     }else {
         result(FlutterMethodNotImplemented);
     }
