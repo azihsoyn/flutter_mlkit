@@ -188,6 +188,41 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
             BOOL registrationSuccess =
             [[FIRModelManager modelManager] registerCloudModelSource:cloudModelSource];
         }
+    } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
+        NSString *cloudModelName = call.arguments[@"cloudModelName"];
+        // TODO local model
+        FIRModelOptions *options = [[FIRModelOptions alloc] initWithCloudModelName:cloudModelName                                                                localModelName:nil];
+        FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
+        FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
+        NSError *error;
+        [ioOptions setInputFormatForIndex:0
+                                     type:FIRModelElementTypeUInt8
+                               dimensions:@[@1, @224, @224, @3]
+                                    error:&error];
+        if (error != nil) { return; }
+        [ioOptions setOutputFormatForIndex:0
+                                      type:FIRModelElementTypeUInt8
+                                dimensions:@[@1, @1001]
+                                     error:&error];
+        if (error != nil) { return; }
+        FIRModelInputs *inputs = [[FIRModelInputs alloc] init];
+        FlutterStandardTypedData* typedData = call.arguments[@"inputBytes"];
+        NSData *data;  // Or NSArray *data;
+        // ...
+        [inputs addInput:typedData error:&error];  // Repeat as necessary.
+        if (error != nil) { return; }
+        [interpreter runWithInputs:inputs
+                           options:ioOptions
+                        completion:^(FIRModelOutputs * _Nullable outputs,
+                                     NSError * _Nullable error) {
+                            if (error != nil || outputs == nil) {
+                                return;
+                            }
+                            // Process outputs
+                            // ...
+                            result(outputs);
+                            return;
+                        }];
     } else {
         result(FlutterMethodNotImplemented);
     }
