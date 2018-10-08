@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mlkit/mlkit.dart';
 
-void main() => runApp(new MyApp());
+void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
   @override
-  _MyAppState createState() => new _MyAppState();
+  _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
@@ -25,13 +25,13 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return new MaterialApp(
-      home: new Scaffold(
-        appBar: new AppBar(
-          title: new Text('Plugin example app'),
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Plugin example app'),
         ),
         body: _buildBody(),
-        floatingActionButton: new FloatingActionButton(
+        floatingActionButton: FloatingActionButton(
           onPressed: () async {
             try {
               //var file = await ImagePicker.pickImage(source: ImageSource.camera);
@@ -52,7 +52,7 @@ class _MyAppState extends State<MyApp> {
               print(e.toString());
             }
           },
-          child: new Icon(Icons.camera),
+          child: Icon(Icons.camera),
         ),
       ),
     );
@@ -61,10 +61,10 @@ class _MyAppState extends State<MyApp> {
   Widget _buildImage() {
     return SizedBox(
       height: 500.0,
-      child: new Center(
+      child: Center(
         child: _file == null
             ? Text('No Image')
-            : new FutureBuilder<Size>(
+            : FutureBuilder<Size>(
                 future: _getImageSize(Image.file(_file, fit: BoxFit.fitWidth)),
                 builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
                   if (snapshot.hasData) {
@@ -73,7 +73,7 @@ class _MyAppState extends State<MyApp> {
                             TextDetectDecoration(_currentLabels, snapshot.data),
                         child: Image.file(_file, fit: BoxFit.fitWidth));
                   } else {
-                    return new Text('Detecting...');
+                    return Text('Detecting...');
                   }
                 },
               ),
@@ -82,8 +82,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<Size> _getImageSize(Image image) {
-    Completer<Size> completer = new Completer<Size>();
-    image.image.resolve(new ImageConfiguration()).addListener(
+    Completer<Size> completer = Completer<Size>();
+    image.image.resolve(ImageConfiguration()).addListener(
         (ImageInfo info, bool _) => completer.complete(
             Size(info.image.width.toDouble(), info.image.height.toDouble())));
     return completer.future;
@@ -135,7 +135,7 @@ class TextDetectDecoration extends Decoration {
 
   @override
   BoxPainter createBoxPainter([VoidCallback onChanged]) {
-    return new _TextDetectPainter(_texts, _originalImageSize);
+    return _TextDetectPainter(_texts, _originalImageSize);
   }
 }
 
@@ -148,7 +148,7 @@ class _TextDetectPainter extends BoxPainter {
 
   @override
   void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
-    final paint = new Paint()
+    final paint = Paint()
       ..strokeWidth = 2.0
       ..color = Colors.red
       ..style = PaintingStyle.stroke;

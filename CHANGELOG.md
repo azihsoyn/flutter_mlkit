@@ -1,3 +1,7 @@
+## 0.6.4
+
+* fix android custom model interpreter.
+
 ## 0.6.3
 
 * update dependency and [bug](https://github.com/azihsoyn/flutter_mlkit/issues/30) fix.
