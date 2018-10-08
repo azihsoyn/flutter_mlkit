@@ -54,20 +54,18 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
     FIRVision *vision = [FIRVision vision];
     NSMutableArray *ret = [NSMutableArray array];
     UIImage* uiImage = NULL;
-    
+    FIRVisionImage *image = NULL;
+
     if ([call.method hasSuffix:@"#detectFromPath"]) {
         NSString *path = call.arguments[@"filepath"];
         uiImage = [UIImage imageWithContentsOfFile:path];
+        image = [[FIRVisionImage alloc] initWithImage:uiImage];
     } else if ([call.method hasSuffix:@"#detectFromBinary"]) {
         FlutterStandardTypedData* typedData = call.arguments[@"binary"];
         uiImage = [UIImage imageWithData: typedData.data];
-    } else {
-        result(FlutterMethodNotImplemented);
-        return;
+        image = [[FIRVisionImage alloc] initWithImage:uiImage];
     }
-    
-    FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
-    
+
     if ([call.method hasPrefix:@"FirebaseVisionTextDetector#detectFrom"]) {
         textDetector = [vision onDeviceTextRecognizer];
         [textDetector processImage:image
@@ -159,8 +157,38 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                               result(ret);
                               return;
                           }];
-    } else if ([call.method hasPrefix:@"FirebaseVisionLabelDetector#detectFrom"]) {
-    }else {
+    } else if ([call.method hasPrefix:@"FirebaseModelManager#registerCloudModelSource"]) {
+        if(call.arguments[@"source"] != [NSNull null] ){
+            NSString *modeName = call.arguments[@"source"][@"modelName"];
+            BOOL enableModelUpdates = call.arguments[@"source"][@"enableModelUpdates"];
+            FIRModelDownloadConditions *initialDownloadConditions = [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:YES
+                                                                                                       canDownloadInBackground:YES];
+            FIRModelDownloadConditions *updatesDownloadConditions = [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:YES
+                                                                                                       canDownloadInBackground:YES];
+            if(call.arguments[@"source"][@"initialDownloadConditions"] != [NSNull null] ){
+                BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
+                BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
+                initialDownloadConditions =
+                [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
+                                                   canDownloadInBackground:requireDeviceIdle];
+            }
+            if(call.arguments[@"source"][@"updatesDownloadConditions"] != [NSNull null] ){
+                BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
+                BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
+                initialDownloadConditions =
+                updatesDownloadConditions =
+                [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
+                                                   canDownloadInBackground:requireDeviceIdle];
+            }
+            FIRCloudModelSource *cloudModelSource =
+            [[FIRCloudModelSource alloc] initWithModelName:modeName
+                                        enableModelUpdates:enableModelUpdates
+                                         initialConditions:initialDownloadConditions
+                                          updateConditions:updatesDownloadConditions];
+            BOOL registrationSuccess =
+            [[FIRModelManager modelManager] registerCloudModelSource:cloudModelSource];
+        }
+    } else {
         result(FlutterMethodNotImplemented);
     }
 }
