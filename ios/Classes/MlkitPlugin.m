@@ -195,32 +195,63 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
         FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
         FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
         NSError *error;
-        [ioOptions setInputFormatForIndex:0
-                                     type:FIRModelElementTypeUInt8
-                               dimensions:@[@1, @224, @224, @3]
+        NSNumber *inputIndex = call.arguments[@"inputOutputOptions"][@"inputIndex"];
+        NSNumber *inputDataType = call.arguments[@"inputOutputOptions"][@"inputDataType"];
+        FIRModelElementType inputType = (FIRModelElementType)[inputDataType intValue];
+        NSArray<NSNumber *> *inputDims = call.arguments[@"inputOutputOptions"][@"inputDims"];
+        [ioOptions setInputFormatForIndex:[inputIndex unsignedIntegerValue]
+                                     type:inputType
+                               dimensions:inputDims
                                     error:&error];
-        if (error != nil) { return; }
-        [ioOptions setOutputFormatForIndex:0
-                                      type:FIRModelElementTypeUInt8
-                                dimensions:@[@1, @1001]
+        if (error != nil) {
+            NSLog(@"Failed setInputFormatForIndex with error: %@", error.localizedDescription);
+            return;
+        }
+
+        NSNumber *outputIndex = call.arguments[@"inputOutputOptions"][@"outputIndex"];
+        NSNumber *outputDataType = call.arguments[@"inputOutputOptions"][@"outputDataType"];
+        FIRModelElementType outputType = (FIRModelElementType)[outputDataType intValue];
+        NSArray<NSNumber *> *outputDims = call.arguments[@"inputOutputOptions"][@"outputDims"];
+        [ioOptions setOutputFormatForIndex:[outputIndex unsignedIntegerValue]
+                                      type:outputType
+                                dimensions:outputDims
                                      error:&error];
-        if (error != nil) { return; }
+        if (error != nil) {
+            NSLog(@"Failed setOutputFormatForIndex with error: %@", error.localizedDescription);
+            return;
+        }
         FIRModelInputs *inputs = [[FIRModelInputs alloc] init];
         FlutterStandardTypedData* typedData = call.arguments[@"inputBytes"];
-        NSData *data;  // Or NSArray *data;
         // ...
-        [inputs addInput:typedData error:&error];  // Repeat as necessary.
-        if (error != nil) { return; }
+        [inputs addInput:typedData.data error:&error];  // Repeat as necessary.
+        if (error != nil) {
+            NSLog(@"Failed addInput with error: %@", error);
+            return;
+        }
         [interpreter runWithInputs:inputs
                            options:ioOptions
                         completion:^(FIRModelOutputs * _Nullable outputs,
                                      NSError * _Nullable error) {
                             if (error != nil || outputs == nil) {
+                                NSLog(@"Failed runWithInputs with error: %@", error.localizedDescription);
                                 return;
                             }
-                            // Process outputs
-                            // ...
-                            result(outputs);
+
+                            NSArray <NSArray<NSNumber *> *>*outputArrayOfArrays = [outputs outputAtIndex:0 error:&error];
+                            if (error) {
+                                NSLog(@"Failed to process detection outputs with error: %@", error.localizedDescription);
+                                return;
+                            }
+
+                            // Get the first output from the array of output arrays.
+                            if(!outputArrayOfArrays || !outputArrayOfArrays.firstObject || ![outputArrayOfArrays.firstObject isKindOfClass:[NSArray class]] || !outputArrayOfArrays.firstObject.firstObject || ![outputArrayOfArrays.firstObject.firstObject isKindOfClass:[NSNumber class]]) {
+                                NSLog(@"Failed to get the results array from output.");
+                                return;
+                            }
+
+                            NSArray<NSNumber *> *ret = outputArrayOfArrays.firstObject;
+
+                            result(ret);
                             return;
                         }];
     } else {
