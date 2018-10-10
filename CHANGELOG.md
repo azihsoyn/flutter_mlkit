@@ -1,3 +1,7 @@
+## 0.7.0
+
+* support custom model interpreter for both OS (cloud hosting model only).
+
 ## 0.6.4
 
 * fix android custom model interpreter.

@@ -42,50 +42,48 @@ NSDictionary *landmarkTypeMap;
 }
 
 UIImage* imageFromImageSourceWithData(NSData *data) {
-  CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
-  CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
-  CFRelease(imageSource);
-  UIImage *image = [UIImage imageWithCGImage:imageRef];
-  CGImageRelease(imageRef);
-  return image;
+    CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+    CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+    CFRelease(imageSource);
+    UIImage *image = [UIImage imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
+    return image;
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     FIRVision *vision = [FIRVision vision];
     NSMutableArray *ret = [NSMutableArray array];
     UIImage* uiImage = NULL;
-    
+    FIRVisionImage *image = NULL;
+
     if ([call.method hasSuffix:@"#detectFromPath"]) {
         NSString *path = call.arguments[@"filepath"];
         uiImage = [UIImage imageWithContentsOfFile:path];
+        image = [[FIRVisionImage alloc] initWithImage:uiImage];
     } else if ([call.method hasSuffix:@"#detectFromBinary"]) {
         FlutterStandardTypedData* typedData = call.arguments[@"binary"];
         uiImage = [UIImage imageWithData: typedData.data];
-    } else {
-        result(FlutterMethodNotImplemented);
-        return;
+        image = [[FIRVisionImage alloc] initWithImage:uiImage];
     }
-    
-    FIRVisionImage *image = [[FIRVisionImage alloc] initWithImage:uiImage];
-    
+
     if ([call.method hasPrefix:@"FirebaseVisionTextDetector#detectFrom"]) {
         textDetector = [vision onDeviceTextRecognizer];
         [textDetector processImage:image
                         completion:^(FIRVisionText *_Nullable resultText,
                                      NSError *_Nullable error) {
-                             if (error != nil) {
-                                 [ret addObject:error.localizedDescription];
-                                 result(ret);
-                                 return;
-                             } else if (resultText != nil) {
-                                 // Recognized text
-                                 for (FIRVisionTextBlock *block in resultText.blocks) {
-                                     [ret addObject:visionTextBlockToDictionary(block)];
-                                 }
-                             }
-                             result(ret);
-                             return;
-                         }];
+                            if (error != nil) {
+                                [ret addObject:error.localizedDescription];
+                                result(ret);
+                                return;
+                            } else if (resultText != nil) {
+                                // Recognized text
+                                for (FIRVisionTextBlock *block in resultText.blocks) {
+                                    [ret addObject:visionTextBlockToDictionary(block)];
+                                }
+                            }
+                            result(ret);
+                            return;
+                        }];
     } else if ([call.method hasPrefix:@"FirebaseVisionBarcodeDetector#detectFrom"]) {
         barcodeDetector = [vision barcodeDetector];
         [barcodeDetector detectInImage:image
@@ -159,7 +157,104 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                               result(ret);
                               return;
                           }];
-    }else {
+    } else if ([call.method hasPrefix:@"FirebaseModelManager#registerCloudModelSource"]) {
+        if(call.arguments[@"source"] != [NSNull null] ){
+            NSString *modeName = call.arguments[@"source"][@"modelName"];
+            BOOL enableModelUpdates = call.arguments[@"source"][@"enableModelUpdates"];
+            FIRModelDownloadConditions *initialDownloadConditions = [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:YES
+                                                                                                       canDownloadInBackground:YES];
+            FIRModelDownloadConditions *updatesDownloadConditions = [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:YES
+                                                                                                       canDownloadInBackground:YES];
+            if(call.arguments[@"source"][@"initialDownloadConditions"] != [NSNull null] ){
+                BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
+                BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
+                initialDownloadConditions =
+                [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
+                                                   canDownloadInBackground:requireDeviceIdle];
+            }
+            if(call.arguments[@"source"][@"updatesDownloadConditions"] != [NSNull null] ){
+                BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
+                BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
+                initialDownloadConditions =
+                updatesDownloadConditions =
+                [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
+                                                   canDownloadInBackground:requireDeviceIdle];
+            }
+            FIRCloudModelSource *cloudModelSource =
+            [[FIRCloudModelSource alloc] initWithModelName:modeName
+                                        enableModelUpdates:enableModelUpdates
+                                         initialConditions:initialDownloadConditions
+                                          updateConditions:updatesDownloadConditions];
+            BOOL registrationSuccess =
+            [[FIRModelManager modelManager] registerCloudModelSource:cloudModelSource];
+        }
+    } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
+        NSString *cloudModelName = call.arguments[@"cloudModelName"];
+        // TODO local model
+        FIRModelOptions *options = [[FIRModelOptions alloc] initWithCloudModelName:cloudModelName                                                                localModelName:nil];
+        FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
+        FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
+        NSError *error;
+        NSNumber *inputIndex = call.arguments[@"inputOutputOptions"][@"inputIndex"];
+        NSNumber *inputDataType = call.arguments[@"inputOutputOptions"][@"inputDataType"];
+        FIRModelElementType inputType = (FIRModelElementType)[inputDataType intValue];
+        NSArray<NSNumber *> *inputDims = call.arguments[@"inputOutputOptions"][@"inputDims"];
+        [ioOptions setInputFormatForIndex:[inputIndex unsignedIntegerValue]
+                                     type:inputType
+                               dimensions:inputDims
+                                    error:&error];
+        if (error != nil) {
+            NSLog(@"Failed setInputFormatForIndex with error: %@", error.localizedDescription);
+            return;
+        }
+
+        NSNumber *outputIndex = call.arguments[@"inputOutputOptions"][@"outputIndex"];
+        NSNumber *outputDataType = call.arguments[@"inputOutputOptions"][@"outputDataType"];
+        FIRModelElementType outputType = (FIRModelElementType)[outputDataType intValue];
+        NSArray<NSNumber *> *outputDims = call.arguments[@"inputOutputOptions"][@"outputDims"];
+        [ioOptions setOutputFormatForIndex:[outputIndex unsignedIntegerValue]
+                                      type:outputType
+                                dimensions:outputDims
+                                     error:&error];
+        if (error != nil) {
+            NSLog(@"Failed setOutputFormatForIndex with error: %@", error.localizedDescription);
+            return;
+        }
+        FIRModelInputs *inputs = [[FIRModelInputs alloc] init];
+        FlutterStandardTypedData* typedData = call.arguments[@"inputBytes"];
+        // ...
+        [inputs addInput:typedData.data error:&error];  // Repeat as necessary.
+        if (error != nil) {
+            NSLog(@"Failed addInput with error: %@", error);
+            return;
+        }
+        [interpreter runWithInputs:inputs
+                           options:ioOptions
+                        completion:^(FIRModelOutputs * _Nullable outputs,
+                                     NSError * _Nullable error) {
+                            if (error != nil || outputs == nil) {
+                                NSLog(@"Failed runWithInputs with error: %@", error.localizedDescription);
+                                return;
+                            }
+
+                            NSArray <NSArray<NSNumber *> *>*outputArrayOfArrays = [outputs outputAtIndex:0 error:&error];
+                            if (error) {
+                                NSLog(@"Failed to process detection outputs with error: %@", error.localizedDescription);
+                                return;
+                            }
+
+                            // Get the first output from the array of output arrays.
+                            if(!outputArrayOfArrays || !outputArrayOfArrays.firstObject || ![outputArrayOfArrays.firstObject isKindOfClass:[NSArray class]] || !outputArrayOfArrays.firstObject.firstObject || ![outputArrayOfArrays.firstObject.firstObject isKindOfClass:[NSNumber class]]) {
+                                NSLog(@"Failed to get the results array from output.");
+                                return;
+                            }
+
+                            NSArray<NSNumber *> *ret = outputArrayOfArrays.firstObject;
+
+                            result(ret);
+                            return;
+                        }];
+    } else {
         result(FlutterMethodNotImplemented);
     }
 }

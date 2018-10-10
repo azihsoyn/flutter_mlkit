@@ -22,7 +22,7 @@ The flutter team now has the [firebase_ml_vision](https://pub.dartlang.org/packa
 | Label Images(on device)        | ✅      | ✅  |
 | Label Images(cloud)            | yet     | yet |
 | Recognize landmarks(cloud)     | yet     | yet |
-| Custom model                   | ✅      | yet |
+| Custom model                   | ✅      | ✅  |
 
 [What features are available on device or in the cloud?](https://firebase.google.com/docs/ml-kit/)
 
