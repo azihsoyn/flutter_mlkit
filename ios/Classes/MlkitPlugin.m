@@ -106,11 +106,11 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
         if(call.arguments[@"option"] != [NSNull null] ){
             FIRVisionFaceDetectorOptions *options = [[FIRVisionFaceDetectorOptions alloc] init];
             NSNumber *modeType = call.arguments[@"option"][@"modeType"];
-            options.modeType = (FIRVisionFaceDetectorMode)modeType;
+            options.performanceMode = (FIRVisionFaceDetectorPerformanceMode)modeType;
             NSNumber *landmarkType = call.arguments[@"option"][@"landmarkType"];
-            options.landmarkType =  (FIRVisionFaceDetectorLandmark)landmarkType.unsignedIntegerValue;
+            options.landmarkMode =  (FIRVisionFaceDetectorLandmarkMode)landmarkType.unsignedIntegerValue;
             NSNumber *classificationType = call.arguments[@"option"][@"classificationType"];
-            options.classificationType = (FIRVisionFaceDetectorClassification)classificationType.unsignedIntegerValue;
+            options.classificationMode = (FIRVisionFaceDetectorClassificationMode)classificationType.unsignedIntegerValue;
             NSNumber *minFaceSize = call.arguments[@"option"][@"minFaceSize"];
 #if CGFLOAT_IS_DOUBLE
             options.minFaceSize = [minFaceSize doubleValue];
@@ -118,28 +118,28 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
             options.minFaceSize = [minFaceSize floatValue];
 #endif
             NSNumber *isTrackingEnabled = call.arguments[@"option"][@"isTrackingEnabled"];
-            options.isTrackingEnabled = [isTrackingEnabled boolValue];
+            options.trackingEnabled = [isTrackingEnabled boolValue];
             faceDetector = [vision faceDetectorWithOptions:options];
         }else{
             faceDetector = [vision faceDetector];
         }
 
-        [faceDetector detectInImage:image
-                         completion:^(NSArray<FIRVisionFace *> *faces,
-                                      NSError *error) {
-                             if (error != nil) {
-                                 [ret addObject:error.localizedDescription];
-                                 result(ret);
-                                 return;
-                             } else if (faces != nil) {
-                                 // Scaned barcode
-                                 for (FIRVisionFace *face in faces) {
-                                     [ret addObject:visionFaceToDictionary(face)];
-                                 }
-                             }
-                             result(ret);
-                             return;
-                         }];
+        [faceDetector processImage:image
+                        completion:^(NSArray<FIRVisionFace *> *faces,
+                                     NSError *error) {
+                            if (error != nil) {
+                                [ret addObject:error.localizedDescription];
+                                result(ret);
+                                return;
+                            } else if (faces != nil) {
+                                // Scaned barcode
+                                for (FIRVisionFace *face in faces) {
+                                    [ret addObject:visionFaceToDictionary(face)];
+                                }
+                            }
+                            result(ret);
+                            return;
+                        }];
     } else if ([call.method hasPrefix:@"FirebaseVisionLabelDetector#detectFrom"]) {
         labelDetector = [vision labelDetector];
         [labelDetector detectInImage:(FIRVisionImage *)image
@@ -178,7 +178,7 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                 initialDownloadConditions =
                 updatesDownloadConditions =
                 [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
-                                                   canDownloadInBackground:requireDeviceIdle];
+                                                canDownloadInBackground:requireDeviceIdle];
             }
             FIRCloudModelSource *cloudModelSource =
             [[FIRCloudModelSource alloc] initWithModelName:modeName
