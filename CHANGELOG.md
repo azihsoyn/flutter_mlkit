@@ -1,3 +1,7 @@
+## 0.8.0
+
+* update iOS firebase dependency. No I/F changed.
+
 ## 0.7.0
 
 * support custom model interpreter for both OS (cloud hosting model only).
