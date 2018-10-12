@@ -1,5 +1,6 @@
 #import "MlkitPlugin.h"
 #import "Firebase/Firebase.h"
+#import "AVFoundation/AVFoundation.h"
 
 @implementation MlkitPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
@@ -123,6 +124,54 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
         }else{
             faceDetector = [vision faceDetector];
         }
+
+        /* TODO
+        // Calculate the image orientation
+        FIRVisionDetectorImageOrientation orientation;
+
+        // Using front-facing camera
+        AVCaptureDevicePosition devicePosition = AVCaptureDevicePositionFront;
+
+        UIDeviceOrientation deviceOrientation = UIDevice.currentDevice.orientation;
+        switch (deviceOrientation) {
+            case UIDeviceOrientationPortrait:
+                if (devicePosition == AVCaptureDevicePositionFront) {
+                    orientation = FIRVisionDetectorImageOrientationLeftTop;
+                } else {
+                    orientation = FIRVisionDetectorImageOrientationRightTop;
+                }
+                break;
+            case UIDeviceOrientationLandscapeLeft:
+                if (devicePosition == AVCaptureDevicePositionFront) {
+                    orientation = FIRVisionDetectorImageOrientationBottomLeft;
+                } else {
+                    orientation = FIRVisionDetectorImageOrientationTopLeft;
+                }
+                break;
+            case UIDeviceOrientationPortraitUpsideDown:
+                if (devicePosition == AVCaptureDevicePositionFront) {
+                    orientation = FIRVisionDetectorImageOrientationRightBottom;
+                } else {
+                    orientation = FIRVisionDetectorImageOrientationLeftBottom;
+                }
+                break;
+            case UIDeviceOrientationLandscapeRight:
+                if (devicePosition == AVCaptureDevicePositionFront) {
+                    orientation = FIRVisionDetectorImageOrientationTopRight;
+                } else {
+                    orientation = FIRVisionDetectorImageOrientationBottomRight;
+                }
+                break;
+            default:
+                orientation = FIRVisionDetectorImageOrientationTopLeft;
+                break;
+        }
+
+        FIRVisionImageMetadata *metadata = [[FIRVisionImageMetadata alloc] init];
+        metadata.orientation = orientation;
+
+        image.metadata = metadata;
+        */
 
         [faceDetector processImage:image
                         completion:^(NSArray<FIRVisionFace *> *faces,
