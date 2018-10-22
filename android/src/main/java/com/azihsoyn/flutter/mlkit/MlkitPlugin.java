@@ -1,12 +1,15 @@
 package com.azihsoyn.flutter.mlkit;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.support.annotation.NonNull;
+import android.support.media.ExifInterface;
 import android.util.Log;
 
 import com.google.android.gms.tasks.Continuation;
@@ -38,8 +41,10 @@ import com.google.firebase.ml.vision.label.FirebaseVisionLabelDetector;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -71,6 +76,7 @@ public class MlkitPlugin implements MethodCallHandler {
         add(FirebaseVisionFaceLandmark.NOSE_BASE);
     }});
     private static Context context;
+    private static Activity activity;
 
     /**
      * Plugin registration.
@@ -79,6 +85,7 @@ public class MlkitPlugin implements MethodCallHandler {
         final MethodChannel channel = new MethodChannel(registrar.messenger(), "plugins.flutter.io/mlkit");
         channel.setMethodCallHandler(new MlkitPlugin());
         context = registrar.context();
+        activity = registrar.activity();
     }
 
     public static int[] toArray(ArrayList<Integer> list) {
@@ -106,17 +113,42 @@ public class MlkitPlugin implements MethodCallHandler {
         if (call.method.endsWith("#detectFromPath")) {
             String path = call.argument("filepath");
             File file = new File(path);
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            Bitmap bm = BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
 
             try {
-                image = FirebaseVisionImage.fromFilePath(context, Uri.fromFile(file));
+                InputStream in = activity.getContentResolver().openInputStream(Uri.fromFile(file));
+                int rotationAngle = getRotationAngle(in);
+
+                Bitmap rotatedBitmap = createRotatedBitmap(bm, bounds, rotationAngle);
+
+                image = FirebaseVisionImage.fromBitmap(rotatedBitmap);
             } catch (IOException e) {
                 Log.e("error", e.getMessage());
                 return;
             }
         } else if (call.method.endsWith("#detectFromBinary")) {
             byte[] bytes = call.argument("binary");
-            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            image = FirebaseVisionImage.fromBitmap(bitmap);
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bounds);
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            Bitmap bm = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, opts);
+
+            try {
+                InputStream in = new ByteArrayInputStream(bytes);
+                int rotationAngle = getRotationAngle(in);
+
+                Bitmap rotatedBitmap = createRotatedBitmap(bm, bounds, rotationAngle);
+
+                image = FirebaseVisionImage.fromBitmap(rotatedBitmap);
+            } catch (IOException e) {
+                Log.e("error", e.getMessage());
+                return;
+            }
         }
 
         if (call.method.startsWith("FirebaseVisionTextDetector#detectFrom")) {
@@ -605,5 +637,26 @@ public class MlkitPlugin implements MethodCallHandler {
         }
 
         return dataBuilder.build();
+    }
+
+    private int getRotationAngle(InputStream in) throws IOException {
+        try {
+            ExifInterface exifInterface = new ExifInterface(in);
+            String orientString = exifInterface.getAttribute(ExifInterface.TAG_ORIENTATION);
+            int orientation = orientString != null ? Integer.parseInt(orientString) : ExifInterface.ORIENTATION_NORMAL;
+            int rotationAngle = 0;
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_90) rotationAngle = 90;
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_180) rotationAngle = 180;
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_270) rotationAngle = 270;
+            return rotationAngle;
+        }catch(IOException e){
+            throw e;
+        }
+    }
+
+    private Bitmap createRotatedBitmap(Bitmap bm, BitmapFactory.Options bounds, int rotationAngle){
+        Matrix matrix = new Matrix();
+        matrix.setRotate(rotationAngle, (float) bm.getWidth() / 2, (float) bm.getHeight() / 2);
+        return Bitmap.createBitmap(bm, 0, 0, bounds.outWidth, bounds.outHeight, matrix, true);
     }
 }
