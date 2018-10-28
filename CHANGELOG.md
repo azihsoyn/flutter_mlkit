@@ -1,3 +1,7 @@
+## 0.8.3
+
+* static_framework = true for ios
+
 ## 0.8.2
 
 * update iOS firebase dependency. No I/F changed.
