@@ -3,7 +3,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'mlkit'
-  s.version          = '0.8.2'
+  s.version          = '0.8.3'
   s.summary          = 'A Flutter plugin to use the Firebase ML Kit.'
   s.description      = <<-DESC
 A new flutter plugin project.
@@ -22,7 +22,7 @@ A new flutter plugin project.
   s.dependency 'Firebase/MLVisionFaceModel', '~> 5.11.0'
   s.dependency 'Firebase/MLVisionLabelModel', '~> 5.11.0'
   s.dependency 'Firebase/MLModelInterpreter', '~> 5.11.0'
-  
+  s.static_framework = true 
   s.ios.deployment_target = '9.0'
 end
 
