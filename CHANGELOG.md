@@ -1,3 +1,7 @@
+## 0.8.2
+
+* update iOS firebase dependency. No I/F changed.
+
 ## 0.8.1
 
 * fix android rotation probelm.
