@@ -112,7 +112,7 @@ Uint8List imageToByteList(img.Image image) {
 
 // float model
 Uint8List imageToByteList(img.Image image) {
-  var _inputSize = 299;
+  var _inputSize = 224;
   var convertedBytes = Float32List(1 * _inputSize * _inputSize * 3);
   var buffer = Float32List.view(convertedBytes.buffer);
   int pixelIndex = 0;
