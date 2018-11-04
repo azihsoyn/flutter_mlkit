@@ -23,7 +23,7 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
 
     defaultConfig {
         minSdkVersion 16
@@ -34,10 +34,10 @@ android {
     }
     dependencies {
         implementation 'com.google.guava:guava:20.0'
-        api 'com.google.firebase:firebase-core:15.+'
-        api 'com.google.firebase:firebase-ml-vision:15.+'
-        api 'com.google.firebase:firebase-ml-vision-image-label-model:15.+'
-        implementation 'com.google.firebase:firebase-ml-model-interpreter:15.+'
-        implementation "com.android.support:exifinterface:28.0.0"
+        api 'com.google.firebase:firebase-core:16.+'
+        api 'com.google.firebase:firebase-ml-vision:18.+'
+        api 'com.google.firebase:firebase-ml-vision-image-label-model:17.+'
+        implementation 'com.google.firebase:firebase-ml-model-interpreter:16.+'
+        api "com.android.support:exifinterface:28.0.0"
     }
 }
