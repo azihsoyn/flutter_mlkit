@@ -493,16 +493,22 @@ class FaceLandmarkType {
   final int value;
 
   const FaceLandmarkType._(int value) : value = value;
-  static const BottomMouth = const FaceLandmarkType._(0);
+  @deprecated
+  static const BottomMouth = MouthBottom;
+  static const MouthBottom = const FaceLandmarkType._(0);
   static const LeftCheek = const FaceLandmarkType._(1);
   static const LeftEar = const FaceLandmarkType._(3);
   static const LeftEye = const FaceLandmarkType._(4);
-  static const LeftMouth = const FaceLandmarkType._(5);
+  @deprecated
+  static const LeftMouth = MouthLeft;
+  static const MouthLeft = const FaceLandmarkType._(5);
   static const NoseBase = const FaceLandmarkType._(6);
   static const RightCheek = const FaceLandmarkType._(7);
   static const RightEar = const FaceLandmarkType._(9);
   static const RightEye = const FaceLandmarkType._(10);
-  static const RightMouth = const FaceLandmarkType._(11);
+  @deprecated
+  static const RightMouth = MouthRight;
+  static const MouthRight = const FaceLandmarkType._(11);
 }
 
 class VisionFace {

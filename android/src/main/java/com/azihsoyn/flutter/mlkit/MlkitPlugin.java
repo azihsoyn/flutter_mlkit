@@ -39,7 +39,7 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabel;
 import com.google.firebase.ml.vision.label.FirebaseVisionLabelDetector;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
-import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
+import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -64,9 +65,9 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
  */
 public class MlkitPlugin implements MethodCallHandler {
     private static final List<Integer> LandmarkTypes = Collections.unmodifiableList(new ArrayList<Integer>() {{
-        add(FirebaseVisionFaceLandmark.BOTTOM_MOUTH);
-        add(FirebaseVisionFaceLandmark.RIGHT_MOUTH);
-        add(FirebaseVisionFaceLandmark.LEFT_MOUTH);
+        add(FirebaseVisionFaceLandmark.MOUTH_BOTTOM);
+        add(FirebaseVisionFaceLandmark.MOUTH_RIGHT);
+        add(FirebaseVisionFaceLandmark.MOUTH_LEFT);
         add(FirebaseVisionFaceLandmark.RIGHT_EYE);
         add(FirebaseVisionFaceLandmark.LEFT_EYE);
         add(FirebaseVisionFaceLandmark.RIGHT_EAR);
@@ -152,9 +153,8 @@ public class MlkitPlugin implements MethodCallHandler {
         }
 
         if (call.method.startsWith("FirebaseVisionTextDetector#detectFrom")) {
-            FirebaseVisionTextDetector detector = FirebaseVision.getInstance()
-                    .getVisionTextDetector();
-            detector.detectInImage(image)
+            FirebaseVisionTextRecognizer detector = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
+            detector.processImage(image)
                     .addOnSuccessListener(
                             new OnSuccessListener<FirebaseVisionText>() {
                                 @Override
@@ -212,14 +212,16 @@ public class MlkitPlugin implements MethodCallHandler {
             FirebaseVisionFaceDetector detector;
             if (call.argument("option") != null) {
                 Map<String, Object> optionsMap = call.argument("option");
-                FirebaseVisionFaceDetectorOptions options =
+                FirebaseVisionFaceDetectorOptions.Builder builder =
                         new FirebaseVisionFaceDetectorOptions.Builder()
-                                .setModeType((int) optionsMap.get("modeType"))
-                                .setLandmarkType((int) optionsMap.get("landmarkType"))
-                                .setClassificationType((int) optionsMap.get("classificationType"))
-                                .setMinFaceSize((float) (double) optionsMap.get("minFaceSize"))
-                                .setTrackingEnabled((boolean) optionsMap.get("isTrackingEnabled"))
-                                .build();
+                                .setPerformanceMode((int) optionsMap.get("modeType"))
+                                .setLandmarkMode((int) optionsMap.get("landmarkType"))
+                                .setClassificationMode((int) optionsMap.get("classificationType"))
+                                .setMinFaceSize((float) (double) optionsMap.get("minFaceSize"));
+                if((boolean) optionsMap.get("isTrackingEnabled")){
+                    builder.enableTracking();
+                }
+                FirebaseVisionFaceDetectorOptions options = builder.build();
                 detector = FirebaseVision.getInstance()
                         .getVisionFaceDetector(options);
             } else {
@@ -316,19 +318,26 @@ public class MlkitPlugin implements MethodCallHandler {
                 byte[] data = (byte[]) call.argument("inputBytes");
 
                 mInterpreter = FirebaseModelInterpreter.getInstance(modelOptions);
-                ByteBuffer buffer = ByteBuffer.allocateDirect(toDim(_inputDims));
+                FirebaseModelInputs.Builder inputsBuilder = new FirebaseModelInputs.Builder();
+                int bytesPerChannel = 1;
+                if(inputDataType == FirebaseModelDataType.FLOAT32 || inputDataType == FirebaseModelDataType.INT32) {
+                    bytesPerChannel = 4;
+                }else if(inputDataType == FirebaseModelDataType.LONG){
+                    bytesPerChannel = 8;
+                }
+                ByteBuffer buffer = ByteBuffer.allocateDirect(toDim(_inputDims)*bytesPerChannel);
                 buffer.order(ByteOrder.nativeOrder());
                 buffer.rewind();
                 buffer.put(data);
+                inputsBuilder.add(buffer);
 
-                FirebaseModelInputs inputs = new FirebaseModelInputs.Builder().add(buffer).build();
+                FirebaseModelInputs inputs = inputsBuilder.build();
                 mInterpreter
                         .run(inputs, inputOutputOptions)
                         .addOnFailureListener(new OnFailureListener() {
                             @Override
                             public void onFailure(@NonNull Exception e) {
                                 e.printStackTrace();
-                                Log.e("error", e.toString());
                                 return;
                             }
                         })
@@ -339,14 +348,27 @@ public class MlkitPlugin implements MethodCallHandler {
                                         switch (outputDataType) {
                                             case FirebaseModelDataType.BYTE:
                                                 result.success(task.getResult().<byte[][]>getOutput(0)[0]);
+                                                break;
                                             case FirebaseModelDataType.FLOAT32:
-                                                result.success(task.getResult().<float[][]>getOutput(0)[0]);
+                                                // WORKAROUND.
+                                                // flutter cannot convert float[]
+                                                float[] tmp = task.getResult().<float[][]>getOutput(0)[0];
+                                                FloatBuffer fb = FloatBuffer.allocate(tmp.length);
+                                                fb.put(tmp);
+                                                ByteBuffer byteBuffer = ByteBuffer.allocate(fb.capacity() * 4);
+                                                byteBuffer.asFloatBuffer().put(fb);
+                                                byte[] bytearray = byteBuffer.array();
+                                                result.success(bytearray);
+                                                break;
                                             case FirebaseModelDataType.INT32:
                                                 result.success(task.getResult().<int[][]>getOutput(0)[0]);
+                                                break;
                                             case FirebaseModelDataType.LONG:
                                                 result.success(task.getResult().<long[][]>getOutput(0)[0]);
+                                                break;
                                             default:
                                                 result.success(null);
+                                                break;
                                         }
                                         return null;
                                     }
@@ -513,7 +535,7 @@ public class MlkitPlugin implements MethodCallHandler {
         ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
                 ImmutableList.<ImmutableMap<String, Object>>builder();
 
-        List<FirebaseVisionText.Block> blocks = texts.getBlocks();
+        List<FirebaseVisionText.TextBlock> blocks = texts.getTextBlocks();
         if (blocks.size() == 0) {
             return null;
         }
