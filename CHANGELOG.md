@@ -1,3 +1,8 @@
+## 0.9.0
+
+* update android firebase dependency.
+* fix implement for custom interpreter.
+
 ## 0.8.3
 
 * static_framework = true for ios
