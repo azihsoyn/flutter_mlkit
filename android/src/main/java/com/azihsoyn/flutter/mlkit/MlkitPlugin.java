@@ -32,7 +32,9 @@ import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
+import com.google.firebase.ml.vision.common.FirebaseVisionPoint;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
+import com.google.firebase.ml.vision.face.FirebaseVisionFaceContour;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
@@ -75,6 +77,23 @@ public class MlkitPlugin implements MethodCallHandler {
         add(FirebaseVisionFaceLandmark.RIGHT_CHEEK);
         add(FirebaseVisionFaceLandmark.LEFT_CHEEK);
         add(FirebaseVisionFaceLandmark.NOSE_BASE);
+    }});
+
+    private static final List<Integer> ContourTypes = Collections.unmodifiableList(new ArrayList<Integer>() {{
+        add(FirebaseVisionFaceContour.ALL_POINTS);
+        add(FirebaseVisionFaceContour.FACE);
+        add(FirebaseVisionFaceContour.LEFT_EYEBROW_TOP);
+        add(FirebaseVisionFaceContour.LEFT_EYEBROW_BOTTOM);
+        add(FirebaseVisionFaceContour.RIGHT_EYEBROW_TOP);
+        add(FirebaseVisionFaceContour.RIGHT_EYEBROW_BOTTOM);
+        add(FirebaseVisionFaceContour.LEFT_EYE);
+        add(FirebaseVisionFaceContour.RIGHT_EYE);
+        add(FirebaseVisionFaceContour.UPPER_LIP_TOP);
+        add(FirebaseVisionFaceContour.UPPER_LIP_BOTTOM);
+        add(FirebaseVisionFaceContour.LOWER_LIP_TOP);
+        add(FirebaseVisionFaceContour.LOWER_LIP_BOTTOM);
+        add(FirebaseVisionFaceContour.NOSE_BRIDGE);
+        add(FirebaseVisionFaceContour.NOSE_BOTTOM);
     }});
     private static Context context;
     private static Activity activity;
@@ -217,6 +236,7 @@ public class MlkitPlugin implements MethodCallHandler {
                                 .setPerformanceMode((int) optionsMap.get("modeType"))
                                 .setLandmarkMode((int) optionsMap.get("landmarkType"))
                                 .setClassificationMode((int) optionsMap.get("classificationType"))
+                                .setContourMode((int)optionsMap.get("contourMode"))
                                 .setMinFaceSize((float) (double) optionsMap.get("minFaceSize"));
                 if((boolean) optionsMap.get("isTrackingEnabled")){
                     builder.enableTracking();
@@ -608,6 +628,7 @@ public class MlkitPlugin implements MethodCallHandler {
                 ImmutableList.<ImmutableMap<String, Object>>builder();
 
         for (FirebaseVisionFace face : faces) {
+            Log.d("face : ", face.toString());
             ImmutableMap.Builder<String, Object> faceBuilder = ImmutableMap.<String, Object>builder();
             faceBuilder.put("rect_bottom", (double) face.getBoundingBox().bottom);
             faceBuilder.put("rect_top", (double) face.getBoundingBox().top);
@@ -637,6 +658,28 @@ public class MlkitPlugin implements MethodCallHandler {
             }
             faceBuilder.put("landmarks", landmarksBuilder.build());
 
+            // contour
+            ImmutableMap.Builder<Integer, Object> contoursBuilder = ImmutableMap.<Integer, Object>builder();
+            for (Integer contourType : ContourTypes) {
+                ImmutableMap.Builder<String, Object> contourBuilder = ImmutableMap.<String, Object>builder();
+                ImmutableList.Builder<Object> pointsBuilder = ImmutableList.<Object>builder();
+                FirebaseVisionFaceContour contour = face.getContour(contourType);
+                if (contour != null) {
+                    for (FirebaseVisionPoint point: contour.getPoints()){
+                        ImmutableMap.Builder<String, Object> pointBuilder = ImmutableMap.<String, Object>builder();
+                        pointBuilder.put("x", point.getX());
+                        pointBuilder.put("y", point.getY());
+                        if (point.getZ() != null) {
+                            pointBuilder.put("z", point.getZ());
+                        }
+                        pointsBuilder.add(pointBuilder.build());
+                    }
+                    contourBuilder.put("points", pointsBuilder.build());
+                    contourBuilder.put("type", contourType);
+                    contoursBuilder.put(contourType, contourBuilder.build());
+                }
+            }
+            faceBuilder.put("contours", contoursBuilder.build());
 
             dataBuilder.add(faceBuilder.build());
         }
