@@ -1,3 +1,8 @@
+## 0.10.0
+
+* flutter 1.2.1 stable version with androidX compatibility.
+* update annotation and exifinterface api.
+
 ## 0.9.0
 
 * update android firebase dependency.
