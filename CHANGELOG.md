@@ -1,3 +1,7 @@
+## 0.10.1
+
+* Fix for `FIRAnalyticsVersionMismatch` compilation error on iOS.
+
 ## 0.10.0
 
 * flutter 1.2.1 stable version with androidX compatibility.
