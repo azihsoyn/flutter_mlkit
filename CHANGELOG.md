@@ -1,3 +1,7 @@
+## 0.11.0
+
+* Add Natural Language API
+
 ## 0.10.1
 
 * Fix for `FIRAnalyticsVersionMismatch` compilation error on iOS.
