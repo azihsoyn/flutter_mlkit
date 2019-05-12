@@ -993,3 +993,19 @@ class VisionLabel {
         confidence = _data['confidence'],
         label = _data['label'];
 }
+
+class NaturalLanguageDetector {
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
+
+  static NaturalLanguageDetector instance = NaturalLanguageDetector._();
+
+  NaturalLanguageDetector._();
+
+  Future<String> getLanguage(String text) async {
+    assert(text != null);
+    return await _channel.invokeMethod('getLanguage', {
+      'text': text
+    }) as String;
+  }
+}

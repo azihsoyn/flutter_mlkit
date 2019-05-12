@@ -9,6 +9,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.net.Uri;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.exifinterface.media.ExifInterface;
 import android.util.Log;
 
@@ -28,6 +29,8 @@ import com.google.firebase.ml.custom.FirebaseModelOptions;
 import com.google.firebase.ml.custom.FirebaseModelOutputs;
 import com.google.firebase.ml.custom.model.FirebaseCloudModelSource;
 import com.google.firebase.ml.custom.model.FirebaseModelDownloadConditions;
+import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage;
+import com.google.firebase.ml.naturallanguage.languageid.FirebaseLanguageIdentification;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector;
@@ -53,6 +56,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -378,6 +382,29 @@ public class MlkitPlugin implements MethodCallHandler {
                 Log.e("error", e.getMessage());
                 return;
             }
+        } else if (call.method.equals("getLanguage")) {
+            FirebaseLanguageIdentification languageIdentifier =
+                    FirebaseNaturalLanguage.getInstance().getLanguageIdentification();
+            languageIdentifier.identifyLanguage((String) call.argument("text"))
+                    .addOnSuccessListener(
+                            new OnSuccessListener<String>() {
+                                @Override
+                                public void onSuccess(@Nullable String languageCode) {
+                                    if (!Objects.equals(languageCode, "und")) {
+                                        result.success(languageCode);
+                                    } else {
+                                        result.error("0", "Language not found", "Unknown Language");
+                                    }
+                                }
+                            })
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    result.error("0", "Language not found", e);
+                                }
+                            });
+
         } else {
             result.notImplemented();
         }

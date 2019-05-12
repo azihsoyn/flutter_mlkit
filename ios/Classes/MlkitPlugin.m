@@ -303,6 +303,26 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                             result(ret);
                             return;
                         }];
+    } else if ([call.method hasPrefix:@"getLanguage"]) {
+    FIRNaturalLanguage *naturalLanguage = [FIRNaturalLanguage naturalLanguage];
+    FIRLanguageIdentification *languageId = [naturalLanguage languageIdentification];
+
+    NSString *text = call.arguments[@"text"];
+    [languageId identifyLanguageForText:text
+                             completion:^(NSString * _Nullable languageCode,
+                                          NSError * _Nullable error) {
+                               if (error != nil) {
+                                 NSLog(@"Failed to identify language: %@", error.localizedDescription);
+                                 return;
+                               }
+                               if (languageCode != nil
+                                   && ![languageCode isEqualToString:@"und"] ) {
+                                   result(languageCode);
+                               } else {
+                                 NSLog(@"No language was identified");
+                               }
+                             }];
+
     } else {
         result(FlutterMethodNotImplemented);
     }

@@ -22,6 +22,8 @@ A new flutter plugin project.
   s.dependency 'Firebase/MLVisionFaceModel', '~> 5.11.0'
   s.dependency 'Firebase/MLVisionLabelModel', '~> 5.11.0'
   s.dependency 'Firebase/MLModelInterpreter', '~> 5.11.0'
+  s.dependency 'Firebase/MLNaturalLanguage', '~> 5.11.0'
+  s.dependency 'Firebase/MLNLLanguageID', '~> 5.11.0'
   s.dependency 'GoogleAppMeasurement', '~> 5.3.0'
   s.static_framework = true 
   s.ios.deployment_target = '9.0'
