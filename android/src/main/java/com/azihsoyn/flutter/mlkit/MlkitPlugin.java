@@ -7,10 +7,10 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.media.ExifInterface;
 import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.exifinterface.media.ExifInterface;
 import android.util.Log;
 
 import com.google.android.gms.tasks.Continuation;
@@ -20,15 +20,15 @@ import com.google.android.gms.tasks.Task;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.firebase.ml.common.FirebaseMLException;
+import com.google.firebase.ml.common.modeldownload.FirebaseModelDownloadConditions;
+import com.google.firebase.ml.common.modeldownload.FirebaseRemoteModel;
 import com.google.firebase.ml.custom.FirebaseModelDataType;
 import com.google.firebase.ml.custom.FirebaseModelInputOutputOptions;
 import com.google.firebase.ml.custom.FirebaseModelInputs;
 import com.google.firebase.ml.custom.FirebaseModelInterpreter;
-import com.google.firebase.ml.custom.FirebaseModelManager;
+import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
 import com.google.firebase.ml.custom.FirebaseModelOptions;
 import com.google.firebase.ml.custom.FirebaseModelOutputs;
-import com.google.firebase.ml.custom.model.FirebaseCloudModelSource;
-import com.google.firebase.ml.custom.model.FirebaseModelDownloadConditions;
 import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage;
 import com.google.firebase.ml.naturallanguage.languageid.FirebaseLanguageIdentification;
 import com.google.firebase.ml.vision.FirebaseVision;
@@ -39,8 +39,8 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
-import com.google.firebase.ml.vision.label.FirebaseVisionLabel;
-import com.google.firebase.ml.vision.label.FirebaseVisionLabelDetector;
+import com.google.firebase.ml.vision.label.FirebaseVisionImageLabel;
+import com.google.firebase.ml.vision.label.FirebaseVisionImageLabeler;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 
@@ -194,13 +194,13 @@ public class MlkitPlugin implements MethodCallHandler {
                                 }
                             });
         } else if (call.method.startsWith("FirebaseVisionLabelDetector#detectFrom")) {
-            FirebaseVisionLabelDetector detector = FirebaseVision.getInstance()
-                    .getVisionLabelDetector();
-            detector.detectInImage(image)
+            FirebaseVisionImageLabeler detector = FirebaseVision.getInstance()
+                    .getOnDeviceImageLabeler();
+            detector.processImage(image)
                     .addOnSuccessListener(
-                            new OnSuccessListener<List<FirebaseVisionLabel>>() {
+                            new OnSuccessListener<List<FirebaseVisionImageLabel>>() {
                                 @Override
-                                public void onSuccess(List<FirebaseVisionLabel> labels) {
+                                public void onSuccess(List<FirebaseVisionImageLabel> labels) {
                                     result.success(processImageLabelingResult(labels));
                                 }
                             })
@@ -255,7 +255,7 @@ public class MlkitPlugin implements MethodCallHandler {
                 Map<String, Object> sourceMap = call.argument("source");
                 String modelName = (String) sourceMap.get("modelName");
                 Boolean enableModelUpdates = (Boolean) sourceMap.get("enableModelUpdates");
-                FirebaseCloudModelSource.Builder cloudSourceBuilder = new FirebaseCloudModelSource.Builder(modelName);
+                FirebaseRemoteModel.Builder cloudSourceBuilder = new FirebaseRemoteModel.Builder(modelName);
                 cloudSourceBuilder.enableModelUpdates(enableModelUpdates);
 
                 if (sourceMap.get("initialDownloadConditions") != null) {
@@ -288,7 +288,7 @@ public class MlkitPlugin implements MethodCallHandler {
                     cloudSourceBuilder.setUpdatesDownloadConditions(conditionsBuilder.build());
                 }
 
-                manager.registerCloudModelSource(cloudSourceBuilder.build());
+                manager.registerRemoteModel(cloudSourceBuilder.build());
             }
         } else if (call.method.equals("FirebaseModelManager#registerLocalModelSource")) {
             FirebaseModelManager manager = FirebaseModelManager.getInstance();
@@ -299,7 +299,7 @@ public class MlkitPlugin implements MethodCallHandler {
             String cloudModelName = call.argument("cloudModelName");
             try {
                 FirebaseModelOptions modelOptions = new FirebaseModelOptions.Builder()
-                        .setCloudModelName(cloudModelName)
+                        .setRemoteModelName(cloudModelName)
                         // TODO: local model
                         //.setLocalModelName("my_local_model")
                         .build();
@@ -671,14 +671,14 @@ public class MlkitPlugin implements MethodCallHandler {
         return dataBuilder.build();
     }
 
-    private ImmutableList<ImmutableMap<String, Object>> processImageLabelingResult(List<FirebaseVisionLabel> labels) {
+    private ImmutableList<ImmutableMap<String, Object>> processImageLabelingResult(List<FirebaseVisionImageLabel> labels) {
         ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
                 ImmutableList.<ImmutableMap<String, Object>>builder();
 
-        for (FirebaseVisionLabel label : labels) {
+        for (FirebaseVisionImageLabel label : labels) {
             ImmutableMap.Builder<String, Object> labelBuilder = ImmutableMap.<String, Object>builder();
 
-            labelBuilder.put("label", label.getLabel());
+            labelBuilder.put("label", label.getText());
             labelBuilder.put("entityID", label.getEntityId());
             labelBuilder.put("confidence", label.getConfidence());
 

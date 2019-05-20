@@ -13,3 +13,7 @@ example/ios/Podfile.lock
 example/.idea
 *.swp
 pubspec.lock
+android/.classpath
+.gitignore
+example/android/app/.classpath
+example/android/app/.project
