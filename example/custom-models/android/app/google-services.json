@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "489635480878",
+    "firebase_url": "https://objectdetectiontest-235813.firebaseio.com",
+    "project_id": "objectdetectiontest-235813",
+    "storage_bucket": "objectdetectiontest-235813.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489635480878:android:aa685e3580271a24",
+        "android_client_info": {
+          "package_name": "de.webever.parking.detectiontest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "489635480878-uovjd1h2d4i0bhjn6ti6ba460fggcsk6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTJ5nQMUEsz3UqxFrbP-jygxm_IXtE4iM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "489635480878-uovjd1h2d4i0bhjn6ti6ba460fggcsk6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
