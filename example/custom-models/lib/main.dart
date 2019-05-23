@@ -15,8 +15,6 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
-const LABELS = {0: 'left', 1: 'both', 2: 'right'};
-
 class Box {
   final double top;
   final double left;
@@ -40,7 +38,6 @@ class _MyAppState extends State<MyApp> {
   List<String> _models = [
     "mobilenet_quant",
     "mobilenet_float",
-    "signdetector",
     "coco"
   ];
 
@@ -53,7 +50,6 @@ class _MyAppState extends State<MyApp> {
   Map<String, List<String>> labels = {
     "mobilenet_quant": null,
     "mobilenet_float": null,
-    "signdetector": ["left", "both", "right"],
     "coco": null
   };
 
@@ -67,11 +63,6 @@ class _MyAppState extends State<MyApp> {
       FirebaseModelIOOption(FirebaseModelDataType.FLOAT32, [1, 224, 224, 3])
     ], [
       FirebaseModelIOOption(FirebaseModelDataType.FLOAT32, [1, 1001])
-    ]),
-    "signdetector": FirebaseModelInputOutputOptions([
-      FirebaseModelIOOption(FirebaseModelDataType.FLOAT32, [1, 224, 224, 3])
-    ], [
-      FirebaseModelIOOption(FirebaseModelDataType.FLOAT32, [1, 3])
     ]),
     "coco": FirebaseModelInputOutputOptions([
       FirebaseModelIOOption(FirebaseModelDataType.BYTE, [1, 300, 300, 3])
@@ -149,7 +140,7 @@ class _MyAppState extends State<MyApp> {
                 print(results);
 
                 List<ObjectDetectionLabel> currentLabels = [];
-                if (_currentModel == 3) {
+                if (_currentModel == 2) {
                   for (var i = 0; i < results[0][0].length; i++) {
                     currentLabels.add(new ObjectDetectionLabel.box(Box(
                         results[0][0][i][0],
