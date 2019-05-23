@@ -34,6 +34,7 @@
 **/android/gradlew
 **/android/gradlew.bat
 **/android/local.properties
+**/android/app/google-services.json
 **/android/**/GeneratedPluginRegistrant.java
 
 # iOS/XCode related
@@ -44,6 +45,7 @@
 **/ios/**/*.perspectivev3
 **/ios/**/*sync/
 **/ios/**/.sconsign.dblite
+**/ios/**/GoogleService-Info.plist
 **/ios/**/.tags*
 **/ios/**/.vagrant/
 **/ios/**/DerivedData/
