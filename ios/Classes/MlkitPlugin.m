@@ -1,6 +1,7 @@
 #import "MlkitPlugin.h"
 #import "Firebase/Firebase.h"
 #import "AVFoundation/AVFoundation.h"
+@import FirebaseMLCommon;
 
 @implementation MlkitPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
@@ -26,7 +27,7 @@
 FIRVisionTextRecognizer *textDetector;
 FIRVisionBarcodeDetector *barcodeDetector;
 FIRVisionFaceDetector *faceDetector;
-FIRVisionLabelDetector *labelDetector;
+FIRVisionImageLabeler *labelDetector;
 
 // android
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/face/FirebaseVisionFaceLandmark#BOTTOM_MOUTH
@@ -189,86 +190,96 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                             result(ret);
                             return;
                         }];
-    } else if ([call.method hasPrefix:@"FirebaseVisionLabelDetector#detectFrom"]) {
-        labelDetector = [vision labelDetector];
-        [labelDetector detectInImage:(FIRVisionImage *)image
-                          completion:^(NSArray<FIRVisionLabel *> *labels,
+    } else if ([call.method hasPrefix:@"FirebaseVisionImageLabelDetector#detectFrom"]) {
+        labelDetector = [vision cloudImageLabeler];
+        [labelDetector processImage:(FIRVisionImage *)image
+                          completion:^(NSArray<FIRVisionImageLabel *> *labels,
                                        NSError *error){
                               if(error != nil){
                                   [ret addObject:error.localizedDescription];
                                   result(ret);
                                   return;
                               } else if(labels != nil){
-                                  for (FIRVisionLabel *label in labels){
-                                      [ret addObject:visionLabelToDictionary(label)];
+                                  for (FIRVisionImageLabel *label in labels){
+                                      [ret addObject:VisionImageLabelToDictionary(label)];
                                   }
                               }
                               result(ret);
                               return;
                           }];
-    } else if ([call.method hasPrefix:@"FirebaseModelManager#registerCloudModelSource"]) {
+    } else if ([call.method hasPrefix:@"FirebaseModelManager#registerRemoteModelSource"]) {
         if(call.arguments[@"source"] != [NSNull null] ){
             NSString *modeName = call.arguments[@"source"][@"modelName"];
             BOOL enableModelUpdates = call.arguments[@"source"][@"enableModelUpdates"];
-            FIRModelDownloadConditions *initialDownloadConditions = [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:YES
-                                                                                                       canDownloadInBackground:YES];
-            FIRModelDownloadConditions *updatesDownloadConditions = [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:YES
-                                                                                                       canDownloadInBackground:YES];
+            FIRModelDownloadConditions *initialDownloadConditions = [[FIRModelDownloadConditions alloc]
+                                                                initWithAllowsCellularAccess:YES
+                                                                allowsBackgroundDownloading:YES];
+            FIRModelDownloadConditions *updatesDownloadConditions = [[FIRModelDownloadConditions alloc]
+                                                                initWithAllowsCellularAccess:NO
+                                                                allowsBackgroundDownloading:YES];
             if(call.arguments[@"source"][@"initialDownloadConditions"] != [NSNull null] ){
                 BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
                 BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
                 initialDownloadConditions =
-                [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
-                                                   canDownloadInBackground:requireDeviceIdle];
+                [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:requireWifi
+                                                   allowsBackgroundDownloading:requireDeviceIdle];
             }
             if(call.arguments[@"source"][@"updatesDownloadConditions"] != [NSNull null] ){
                 BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
                 BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
                 initialDownloadConditions =
                 updatesDownloadConditions =
-                [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
-                                                canDownloadInBackground:requireDeviceIdle];
+                [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:requireWifi
+                                                allowsBackgroundDownloading:requireDeviceIdle];
             }
-            FIRCloudModelSource *cloudModelSource =
-            [[FIRCloudModelSource alloc] initWithModelName:modeName
-                                        enableModelUpdates:enableModelUpdates
-                                         initialConditions:initialDownloadConditions
-                                          updateConditions:updatesDownloadConditions];
+            FIRRemoteModel *remoteModel = [[FIRRemoteModel alloc] initWithName:modeName
+                                                allowsModelUpdates:enableModelUpdates
+                                                 initialConditions:initialDownloadConditions
+                                                  updateConditions:updatesDownloadConditions];  
             BOOL registrationSuccess =
-            [[FIRModelManager modelManager] registerCloudModelSource:cloudModelSource];
+            [[FIRModelManager modelManager] registerRemoteModel:remoteModel];
         }
     } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
-        NSString *cloudModelName = call.arguments[@"cloudModelName"];
+        NSString *RemoteModelName = call.arguments[@"remoteModelName"];
         // TODO local model
-        FIRModelOptions *options = [[FIRModelOptions alloc] initWithCloudModelName:cloudModelName                                                                localModelName:nil];
+        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:RemoteModelName                                                                localModelName:nil];
         FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
         FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
+        NSLog(@"Building input options");
         NSError *error;
-        NSNumber *inputIndex = call.arguments[@"inputOutputOptions"][@"inputIndex"];
-        NSNumber *inputDataType = call.arguments[@"inputOutputOptions"][@"inputDataType"];
-        FIRModelElementType inputType = (FIRModelElementType)[inputDataType intValue];
-        NSArray<NSNumber *> *inputDims = call.arguments[@"inputOutputOptions"][@"inputDims"];
-        [ioOptions setInputFormatForIndex:[inputIndex unsignedIntegerValue]
-                                     type:inputType
-                               dimensions:inputDims
-                                    error:&error];
-        if (error != nil) {
-            NSLog(@"Failed setInputFormatForIndex with error: %@", error.localizedDescription);
-            return;
+        NSArray<NSDictionary *> *inputOptions = call.arguments[@"inputOutputOptions"][@"inputOptions"];
+        for (int i = 0; i < [inputOptions count]; i++)
+        {
+            NSNumber *inputDataType = [inputOptions objectAtIndex:i][@"dataType"];
+            FIRModelElementType inputType = (FIRModelElementType)[inputDataType intValue];
+            NSArray<NSNumber *> *inputDims = [inputOptions objectAtIndex:i][@"dims"];
+            [ioOptions setInputFormatForIndex:i
+                                        type:inputType
+                                dimensions:inputDims
+                                        error:&error];
+            if (error != nil) {
+                NSLog(@"Failed setInputFormatForIndex with error: %@", error.localizedDescription);
+                return;
+            }
         }
-
-        NSNumber *outputIndex = call.arguments[@"inputOutputOptions"][@"outputIndex"];
-        NSNumber *outputDataType = call.arguments[@"inputOutputOptions"][@"outputDataType"];
-        FIRModelElementType outputType = (FIRModelElementType)[outputDataType intValue];
-        NSArray<NSNumber *> *outputDims = call.arguments[@"inputOutputOptions"][@"outputDims"];
-        [ioOptions setOutputFormatForIndex:[outputIndex unsignedIntegerValue]
-                                      type:outputType
-                                dimensions:outputDims
-                                     error:&error];
-        if (error != nil) {
-            NSLog(@"Failed setOutputFormatForIndex with error: %@", error.localizedDescription);
-            return;
+        
+        NSLog(@"Building output options");
+        NSArray<NSDictionary *> *outputOptions = call.arguments[@"inputOutputOptions"][@"outputOptions"];
+        for (int i = 0; i < [outputOptions count]; i++)
+        {
+            NSNumber *outputDataType = [outputOptions objectAtIndex:i][@"dataType"];
+            FIRModelElementType outputType = (FIRModelElementType)[outputDataType intValue];
+            NSArray<NSNumber *> *outputDims = [outputOptions objectAtIndex:i][@"dims"];
+            [ioOptions setOutputFormatForIndex:i
+                                         type:outputType
+                                   dimensions:outputDims
+                                        error:&error];
+            if (error != nil) {
+                NSLog(@"Failed setOutputFormatForIndex with error: %@", error.localizedDescription);
+                return;
+            }
         }
+        
         FIRModelInputs *inputs = [[FIRModelInputs alloc] init];
         FlutterStandardTypedData* typedData = call.arguments[@"inputBytes"];
         // ...
@@ -277,29 +288,33 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
             NSLog(@"Failed addInput with error: %@", error);
             return;
         }
+        NSLog(@"Running detection");
         [interpreter runWithInputs:inputs
                            options:ioOptions
                         completion:^(FIRModelOutputs * _Nullable outputs,
                                      NSError * _Nullable error) {
+                            NSLog(@"Detection run");
                             if (error != nil || outputs == nil) {
                                 NSLog(@"Failed runWithInputs with error: %@", error.localizedDescription);
                                 return;
                             }
+                            __block NSMutableArray<NSObject *> *ret =[NSMutableArray array];
+                            for (int i = 0; i < [outputOptions count]; i++)
+                            {
+                                NSObject *outputArray = [outputs outputAtIndex:i error:&error];
+                                if (error) {
+                                    NSLog(@"Failed to process detection outputs with error: %@", error.localizedDescription);
+                                    return;
+                                }
 
-                            NSArray <NSArray<NSNumber *> *>*outputArrayOfArrays = [outputs outputAtIndex:0 error:&error];
-                            if (error) {
-                                NSLog(@"Failed to process detection outputs with error: %@", error.localizedDescription);
-                                return;
+                                // Get the first output from the array of output arrays.
+                                if(!outputArray) {
+                                    NSLog(@"Failed to get the results array from output.");
+                                    return;
+                                }
+                                
+                                [ret addObject:processList(outputArray)];
                             }
-
-                            // Get the first output from the array of output arrays.
-                            if(!outputArrayOfArrays || !outputArrayOfArrays.firstObject || ![outputArrayOfArrays.firstObject isKindOfClass:[NSArray class]] || !outputArrayOfArrays.firstObject.firstObject || ![outputArrayOfArrays.firstObject.firstObject isKindOfClass:[NSNumber class]]) {
-                                NSLog(@"Failed to get the results array from output.");
-                                return;
-                            }
-
-                            NSArray<NSNumber *> *ret = outputArrayOfArrays.firstObject;
-
                             result(ret);
                             return;
                         }];
@@ -326,6 +341,24 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
     } else {
         result(FlutterMethodNotImplemented);
     }
+}
+
+NSMutableArray *processList(NSObject * o) {
+    __block NSMutableArray<NSObject *> *list =[NSMutableArray array];
+    if ([o isKindOfClass:[NSArray class]]) {
+        int length = [((NSArray *)o) count];
+        for (int i = 0; i < length; i++) {
+            NSObject *o2 = [((NSArray *)o) objectAtIndex:i];
+            if ([o2 isKindOfClass:[NSArray class]]) {
+                [list addObject:processList(o2)];
+            } else {
+                [list addObject:o2];
+            }
+        }
+    } else {
+        [list addObject:o];
+    }
+    return list;
 }
 
 NSDictionary *visionTextBlockToDictionary(FIRVisionTextBlock * visionTextBlock) {
@@ -585,14 +618,10 @@ NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
              };
 }
 
-NSDictionary *visionLabelToDictionary(FIRVisionLabel *label){
-    return @{@"label" : label.label,
+NSDictionary *VisionImageLabelToDictionary(FIRVisionImageLabel *label){
+    return @{@"label" : label.text,
              @"entityID" : label.entityID,
-             @"confidence" : [NSNumber numberWithFloat:label.confidence],
-             @"rect_left": @(label.frame.origin.x),
-             @"rect_top": @(label.frame.origin.y),
-             @"rect_right": @(label.frame.origin.x + label.frame.size.width),
-             @"rect_bottom": @(label.frame.origin.y + label.frame.size.height),
+             @"confidence" : label.confidence,
              };
 }
 

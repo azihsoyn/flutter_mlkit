@@ -251,12 +251,12 @@ class FirebaseModelInterpreter {
 
   FirebaseModelInterpreter._() {}
 
-  Future<List<dynamic>> run(String cloudModelName,
+  Future<List<dynamic>> run(String remoteModelName,
       FirebaseModelInputOutputOptions options, Uint8List inputBytes) async {
     try {
       dynamic results =
           await _channel.invokeMethod("FirebaseModelInterpreter#run", {
-        'cloudModelName': cloudModelName,
+        'remoteModelName': remoteModelName,
         'inputOutputOptions': options.asDictionary(),
         'inputBytes': inputBytes
       });
@@ -268,29 +268,41 @@ class FirebaseModelInterpreter {
   }
 }
 
+class FirebaseModelIOOption {
+  final FirebaseModelDataType dataType;
+  final List<int> dims;
+
+  const FirebaseModelIOOption(this.dataType, this.dims);
+  Map<String, dynamic> asDictionary() {
+    return {
+      "dataType": dataType.value,
+      "dims": dims,
+    };
+  }
+}
+
 //class FirebaseModelOptions {}
 
 // android
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelInputOutputOptions.Builder
 class FirebaseModelInputOutputOptions {
-  final int inputIndex;
-  final FirebaseModelDataType inputDataType;
-  final List<int> inputDims;
-  final int outputIndex;
-  final FirebaseModelDataType outputDataType;
-  final List<int> outputDims;
+  final List<FirebaseModelIOOption> inputOptions;
+  final List<FirebaseModelIOOption> outputOptions;
 
-  const FirebaseModelInputOutputOptions(this.inputIndex, this.inputDataType,
-      this.inputDims, this.outputIndex, this.outputDataType, this.outputDims);
+  const FirebaseModelInputOutputOptions(this.inputOptions, this.outputOptions);
 
   Map<String, dynamic> asDictionary() {
+    List<Map<String, dynamic>> inputs = [];
+    List<Map<String, dynamic>> outputs = [];
+    inputOptions.forEach((o) {
+      inputs.add(o.asDictionary());
+    });
+    outputOptions.forEach((o) {
+      outputs.add(o.asDictionary());
+    });
     return {
-      "inputIndex": inputIndex,
-      "inputDataType": inputDataType.value,
-      "inputDims": inputDims,
-      "outputIndex": outputIndex,
-      "outputDataType": outputDataType.value,
-      "outputDims": outputDims,
+      "inputOptions": inputs,
+      "outputOptions": outputs,
     };
   }
 }
@@ -311,7 +323,7 @@ class FirebaseModelDataType {
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelManager
 class FirebaseModelManager {
   //final FirebaseLocalModelSource localModelSource;
-  //final FirebaseCloudModelSource cloudModelSource;
+  //final FirebaseRemoteModelSource RemoteModelSource;
   static const MethodChannel _channel =
       const MethodChannel('plugins.flutter.io/mlkit');
 
@@ -319,15 +331,15 @@ class FirebaseModelManager {
 
   FirebaseModelManager._() {}
 
-  Future<void> registerCloudModelSource(
-      FirebaseCloudModelSource cloudSource) async {
+  Future<void> registerRemoteModelSource(
+      FirebaseRemoteModelSource cloudSource) async {
     try {
       await _channel.invokeMethod(
-          "FirebaseModelManager#registerCloudModelSource",
+          "FirebaseModelManager#registerRemoteModelSource",
           {'source': cloudSource.asDictionary()});
     } catch (e) {
       print(
-          "Error on FirebaseModelManager#registerCloudModelSource : ${e.toString()}");
+          "Error on FirebaseModelManager#registerRemoteModelSource : ${e.toString()}");
     }
     return null;
   }
@@ -368,8 +380,8 @@ class FirebaseLocalModelSource {
 }
 
 // android
-//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/model/FirebaseCloudModelSource
-class FirebaseCloudModelSource {
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/model/FirebaseRemoteModelSource
+class FirebaseRemoteModelSource {
   final String modelName;
   final bool enableModelUpdates;
   final FirebaseModelDownloadConditions initialDownloadConditions;
@@ -377,7 +389,7 @@ class FirebaseCloudModelSource {
 
   static const _defaultCondition = FirebaseModelDownloadConditions();
 
-  FirebaseCloudModelSource(
+  FirebaseRemoteModelSource(
       {@required this.modelName,
       this.enableModelUpdates: false,
       this.initialDownloadConditions: _defaultCondition,
@@ -1004,8 +1016,6 @@ class NaturalLanguageDetector {
 
   Future<String> getLanguage(String text) async {
     assert(text != null);
-    return await _channel.invokeMethod('getLanguage', {
-      'text': text
-    }) as String;
+    return await _channel.invokeMethod('getLanguage', {'text': text}) as String;
   }
 }
