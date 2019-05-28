@@ -35,11 +35,7 @@ class ObjectDetectionLabel {
 }
 
 class _MyAppState extends State<MyApp> {
-  List<String> _models = [
-    "mobilenet_quant",
-    "mobilenet_float",
-    "coco"
-  ];
+  List<String> _models = ["mobilenet_quant", "mobilenet_float", "coco"];
 
   File _file;
   int _currentModel = 3;
@@ -116,10 +112,9 @@ class _MyAppState extends State<MyApp> {
               var options = _ioOptions[_models[_currentModel]];
               var dim = options.inputOptions[0].dims[1];
               // Use gallery for simulators
-              var file =
-                  await ImagePicker.pickImage(
-                    //source: ImageSource.camera);
-               source: ImageSource.gallery);
+              var file = await ImagePicker.pickImage(
+                  //source: ImageSource.camera);
+                  source: ImageSource.gallery);
               setState(() {
                 _file = file;
               });
@@ -143,10 +138,10 @@ class _MyAppState extends State<MyApp> {
                 if (_currentModel == 2) {
                   for (var i = 0; i < results[0][0].length; i++) {
                     currentLabels.add(new ObjectDetectionLabel.box(Box(
-                        results[0][0][i][0],
                         results[0][0][i][1],
                         results[0][0][i][2],
-                        results[0][0][i][3])));
+                        results[0][0][i][3],
+                        results[0][0][i][0])));
                   }
                   for (var i = 0; i < results[1][0].length; i++) {
                     currentLabels[i].label = labels[_models[_currentModel]]
@@ -357,7 +352,10 @@ class _TextDetectPainter extends BoxPainter {
 
       TextSpan span =
           new TextSpan(text: text.label, style: TextStyle(color: color));
-      TextPainter tp = new TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+      TextPainter tp = new TextPainter(
+          text: span,
+          textAlign: TextAlign.left,
+          textDirection: TextDirection.ltr);
       tp.layout();
       print("text : ${text.label}, rect : ${text.box}");
       final _rect = Rect.fromLTRB(
