@@ -37,9 +37,10 @@ android {
         implementation 'com.google.firebase:firebase-ml-natural-language:19.+'
         implementation 'com.google.firebase:firebase-ml-natural-language-language-id-model:19.+'
         api 'com.google.firebase:firebase-core:16.+'
-        api 'com.google.firebase:firebase-ml-vision:18.+'
+        api 'com.google.firebase:firebase-ml-vision:20.+'
+        implementation 'com.google.firebase:firebase-ml-vision-face-model:17.+'
         api 'com.google.firebase:firebase-ml-vision-image-label-model:17.+'
-        implementation 'com.google.firebase:firebase-ml-model-interpreter:16.+'
+        implementation 'com.google.firebase:firebase-ml-model-interpreter:19.+'
         api "com.android.support:exifinterface:28.0.0"
     }
 }
