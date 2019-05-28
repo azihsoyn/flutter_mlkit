@@ -1,6 +1,7 @@
 #import "MlkitPlugin.h"
 #import "Firebase/Firebase.h"
 #import "AVFoundation/AVFoundation.h"
+@import FirebaseMLCommon;
 
 @implementation MlkitPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
@@ -26,7 +27,7 @@
 FIRVisionTextRecognizer *textDetector;
 FIRVisionBarcodeDetector *barcodeDetector;
 FIRVisionFaceDetector *faceDetector;
-FIRVisionLabelDetector *labelDetector;
+FIRVisionImageLabeler *labelDetector;
 
 // android
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/face/FirebaseVisionFaceLandmark#BOTTOM_MOUTH
@@ -190,16 +191,16 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                             return;
                         }];
     } else if ([call.method hasPrefix:@"FirebaseVisionLabelDetector#detectFrom"]) {
-        labelDetector = [vision labelDetector];
-        [labelDetector detectInImage:(FIRVisionImage *)image
-                          completion:^(NSArray<FIRVisionLabel *> *labels,
+        labelDetector = [vision onDeviceImageLabeler];
+        [labelDetector processImage:(FIRVisionImage *)image
+                          completion:^(NSArray<FIRVisionImageLabel *> *labels,
                                        NSError *error){
                               if(error != nil){
                                   [ret addObject:error.localizedDescription];
                                   result(ret);
                                   return;
                               } else if(labels != nil){
-                                  for (FIRVisionLabel *label in labels){
+                                  for (FIRVisionImageLabel *label in labels){
                                       [ret addObject:visionLabelToDictionary(label)];
                                   }
                               }
@@ -210,37 +211,37 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
         if(call.arguments[@"source"] != [NSNull null] ){
             NSString *modeName = call.arguments[@"source"][@"modelName"];
             BOOL enableModelUpdates = call.arguments[@"source"][@"enableModelUpdates"];
-            FIRModelDownloadConditions *initialDownloadConditions = [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:YES
-                                                                                                       canDownloadInBackground:YES];
-            FIRModelDownloadConditions *updatesDownloadConditions = [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:YES
-                                                                                                       canDownloadInBackground:YES];
+            FIRModelDownloadConditions *initialDownloadConditions = [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:YES
+                                                                                                       allowsBackgroundDownloading:YES];
+            FIRModelDownloadConditions *updatesDownloadConditions = [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:YES
+                                                                                                       allowsBackgroundDownloading:YES];
             if(call.arguments[@"source"][@"initialDownloadConditions"] != [NSNull null] ){
                 BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
                 BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
                 initialDownloadConditions =
-                [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
-                                                   canDownloadInBackground:requireDeviceIdle];
+                [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:requireWifi
+                                                   allowsBackgroundDownloading:requireDeviceIdle];
             }
             if(call.arguments[@"source"][@"updatesDownloadConditions"] != [NSNull null] ){
                 BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
                 BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
                 initialDownloadConditions =
                 updatesDownloadConditions =
-                [[FIRModelDownloadConditions alloc] initWithIsWiFiRequired:requireWifi
-                                                canDownloadInBackground:requireDeviceIdle];
+                [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:requireWifi
+                                                allowsBackgroundDownloading:requireDeviceIdle];
             }
-            FIRCloudModelSource *cloudModelSource =
-            [[FIRCloudModelSource alloc] initWithModelName:modeName
-                                        enableModelUpdates:enableModelUpdates
+            FIRRemoteModel *cloudModelSource =
+            [[FIRRemoteModel alloc] initWithName:modeName
+                                        allowsModelUpdates:enableModelUpdates
                                          initialConditions:initialDownloadConditions
                                           updateConditions:updatesDownloadConditions];
             BOOL registrationSuccess =
-            [[FIRModelManager modelManager] registerCloudModelSource:cloudModelSource];
+            [[FIRModelManager modelManager] registerRemoteModel:cloudModelSource];
         }
     } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
         NSString *cloudModelName = call.arguments[@"cloudModelName"];
         // TODO local model
-        FIRModelOptions *options = [[FIRModelOptions alloc] initWithCloudModelName:cloudModelName                                                                localModelName:nil];
+        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:cloudModelName                                                                localModelName:nil];
         FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
         FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
         NSError *error;
@@ -585,14 +586,10 @@ NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
              };
 }
 
-NSDictionary *visionLabelToDictionary(FIRVisionLabel *label){
-    return @{@"label" : label.label,
+NSDictionary *visionLabelToDictionary(FIRVisionImageLabel *label){
+    return @{@"label" : label.text,
              @"entityID" : label.entityID,
-             @"confidence" : [NSNumber numberWithFloat:label.confidence],
-             @"rect_left": @(label.frame.origin.x),
-             @"rect_top": @(label.frame.origin.y),
-             @"rect_right": @(label.frame.origin.x + label.frame.size.width),
-             @"rect_bottom": @(label.frame.origin.y + label.frame.size.height),
+             @"confidence" : label.confidence,
              };
 }
 
