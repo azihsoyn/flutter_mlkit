@@ -978,18 +978,12 @@ class VisionBarcodeDriverLicense {
 // https://firebase.google.com/docs/reference/swift/firebasemlvision/api/reference/Classes/VisionLabel
 class VisionLabel {
   final Map<dynamic, dynamic> _data;
-  final Rect rect;
   final String entityID;
   final double confidence;
   final String label;
 
   VisionLabel._(this._data)
-      : rect = Rect.fromLTRB(
-            _data['rect_left'] ?? 0.0,
-            _data['rect_top'] ?? 0.0,
-            _data['rect_right'] ?? 0.0,
-            _data['rect_bottom'] ?? 0.0),
-        entityID = _data['entityID'],
+      : entityID = _data['entityID'],
         confidence = _data['confidence'],
         label = _data['label'];
 }
@@ -1004,8 +998,6 @@ class NaturalLanguageDetector {
 
   Future<String> getLanguage(String text) async {
     assert(text != null);
-    return await _channel.invokeMethod('getLanguage', {
-      'text': text
-    }) as String;
+    return await _channel.invokeMethod('getLanguage', {'text': text}) as String;
   }
 }

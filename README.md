@@ -21,7 +21,12 @@ The flutter team now has the [firebase_ml_vision](https://pub.dartlang.org/packa
 | Scan barcodes(on device)       | ✅      | ✅  |
 | Label Images(on device)        | ✅      | ✅  |
 | Label Images(cloud)            | yet     | yet |
+| Object detection & tracking    | yet     | yet |
 | Recognize landmarks(cloud)     | yet     | yet |
+| Language identification        | ✅      | ✅  |
+| Translation                    | yet     | yet |
+| Smart Reply                    | yet     | yet |
+| AutoML model inference         | yet     | yet |
 | Custom model                   | ✅      | ✅  |
 
 [What features are available on device or in the cloud?](https://firebase.google.com/docs/ml-kit/)
