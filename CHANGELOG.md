@@ -1,3 +1,7 @@
+## 0.12.0
+
+* update firebase
+
 ## 0.11.0
 
 * Add Natural Language API

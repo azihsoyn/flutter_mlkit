@@ -3,7 +3,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'mlkit'
-  s.version          = '0.8.3'
+  s.version          = '0.12.0'
   s.summary          = 'A Flutter plugin to use the Firebase ML Kit.'
   s.description      = <<-DESC
 A new flutter plugin project.
