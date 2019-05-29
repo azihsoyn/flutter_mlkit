@@ -143,10 +143,10 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
                 if (_currentModel == 2) {
                   for (var i = 0; i < results[0][0].length; i++) {
                     currentLabels.add(new ObjectDetectionLabel.box(Box(
+                        results[0][0][i][0],
                         results[0][0][i][1],
                         results[0][0][i][2],
-                        results[0][0][i][3],
-                        results[0][0][i][0])));
+                        results[0][0][i][3])));
                   }
                   for (var i = 0; i < results[1][0].length; i++) {
                     currentLabels[i].label = labels[_models[_currentModel]]
@@ -199,7 +199,7 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
     int pixelIndex = 0;
     for (var i = 0; i < _inputSize; i++) {
       for (var j = 0; j < _inputSize; j++) {
-        var pixel = image.getPixel(i, j);
+        var pixel = image.getPixel(j, i);
         buffer.setUint8(pixelIndex, (pixel >> 16) & 0xFF);
         pixelIndex++;
         buffer.setUint8(pixelIndex, (pixel >> 8) & 0xFF);
