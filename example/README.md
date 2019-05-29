@@ -1,6 +1,6 @@
 # mlkit_example
 
-Demonstrates how to use the mlkit plugin for text recognision.
+Demonstrates how to use the mlkit plugin for text recognision and custom models for object detection.
 
 ## Getting Started
 
