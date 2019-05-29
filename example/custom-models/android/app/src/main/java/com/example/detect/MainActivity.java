@@ -1,4 +1,4 @@
-package com.example.detect
+package com.example.detect;
 
 import android.os.Bundle;
 import io.flutter.app.FlutterActivity;
