@@ -38,7 +38,7 @@ class _MyAppState extends State<MyApp> {
   List<String> _models = ["mobilenet_quant", "mobilenet_float", "coco"];
 
   File _file;
-  int _currentModel = 3;
+  int _currentModel = 2;
   List<ObjectDetectionLabel> _currentLabels = <ObjectDetectionLabel>[];
 
   FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.instance;

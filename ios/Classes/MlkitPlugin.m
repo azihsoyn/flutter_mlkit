@@ -190,8 +190,8 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                             result(ret);
                             return;
                         }];
-    } else if ([call.method hasPrefix:@"FirebaseVisionImageLabelDetector#detectFrom"]) {
-        labelDetector = [vision cloudImageLabeler];
+    } else if ([call.method hasPrefix:@"FirebaseVisionLabelDetector#detectFrom"]) {
+        labelDetector = [vision onDeviceImageLabeler];
         [labelDetector processImage:(FIRVisionImage *)image
                           completion:^(NSArray<FIRVisionImageLabel *> *labels,
                                        NSError *error){
@@ -201,7 +201,7 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                                   return;
                               } else if(labels != nil){
                                   for (FIRVisionImageLabel *label in labels){
-                                      [ret addObject:VisionImageLabelToDictionary(label)];
+                                      [ret addObject:visionLabelToDictionary(label)];
                                   }
                               }
                               result(ret);
@@ -211,12 +211,10 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
         if(call.arguments[@"source"] != [NSNull null] ){
             NSString *modeName = call.arguments[@"source"][@"modelName"];
             BOOL enableModelUpdates = call.arguments[@"source"][@"enableModelUpdates"];
-            FIRModelDownloadConditions *initialDownloadConditions = [[FIRModelDownloadConditions alloc]
-                                                                initWithAllowsCellularAccess:YES
-                                                                allowsBackgroundDownloading:YES];
-            FIRModelDownloadConditions *updatesDownloadConditions = [[FIRModelDownloadConditions alloc]
-                                                                initWithAllowsCellularAccess:NO
-                                                                allowsBackgroundDownloading:YES];
+            FIRModelDownloadConditions *initialDownloadConditions = [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:YES
+                                                                                                       allowsBackgroundDownloading:YES];
+            FIRModelDownloadConditions *updatesDownloadConditions = [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:YES
+                                                                                                       allowsBackgroundDownloading:YES];
             if(call.arguments[@"source"][@"initialDownloadConditions"] != [NSNull null] ){
                 BOOL requireWifi = call.arguments[@"source"][@"initialDownloadConditions"][@"requireWifi"];
                 BOOL requireDeviceIdle = call.arguments[@"source"][@"initialDownloadConditions"][@"requireDeviceIdle"];
@@ -232,17 +230,18 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                 [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:requireWifi
                                                 allowsBackgroundDownloading:requireDeviceIdle];
             }
-            FIRRemoteModel *remoteModel = [[FIRRemoteModel alloc] initWithName:modeName
-                                                allowsModelUpdates:enableModelUpdates
-                                                 initialConditions:initialDownloadConditions
-                                                  updateConditions:updatesDownloadConditions];  
+            FIRRemoteModel *cloudModelSource =
+            [[FIRRemoteModel alloc] initWithName:modeName
+                                        allowsModelUpdates:enableModelUpdates
+                                         initialConditions:initialDownloadConditions
+                                          updateConditions:updatesDownloadConditions];
             BOOL registrationSuccess =
-            [[FIRModelManager modelManager] registerRemoteModel:remoteModel];
+            [[FIRModelManager modelManager] registerRemoteModel:cloudModelSource];
         }
     } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
         NSString *RemoteModelName = call.arguments[@"remoteModelName"];
         // TODO local model
-        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:RemoteModelName                                                                localModelName:nil];
+        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:cloudModelName                                                                localModelName:nil];
         FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
         FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
         NSLog(@"Building input options");
@@ -618,7 +617,7 @@ NSDictionary *visionFaceToDictionary(FIRVisionFace* face){
              };
 }
 
-NSDictionary *VisionImageLabelToDictionary(FIRVisionImageLabel *label){
+NSDictionary *visionLabelToDictionary(FIRVisionImageLabel *label){
     return @{@"label" : label.text,
              @"entityID" : label.entityID,
              @"confidence" : label.confidence,

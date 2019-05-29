@@ -23,14 +23,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.firebase.ml.common.FirebaseMLException;
 import com.google.firebase.ml.common.modeldownload.FirebaseModelDownloadConditions;
+import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
 import com.google.firebase.ml.common.modeldownload.FirebaseRemoteModel;
 import com.google.firebase.ml.custom.FirebaseModelDataType;
 import com.google.firebase.ml.custom.FirebaseModelInputOutputOptions;
 import com.google.firebase.ml.custom.FirebaseModelInputs;
 import com.google.firebase.ml.custom.FirebaseModelInterpreter;
-import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
 import com.google.firebase.ml.custom.FirebaseModelOptions;
 import com.google.firebase.ml.custom.FirebaseModelOutputs;
+
 import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage;
 import com.google.firebase.ml.naturallanguage.languageid.FirebaseLanguageIdentification;
 import com.google.firebase.ml.vision.FirebaseVision;
@@ -193,19 +194,24 @@ public class MlkitPlugin implements MethodCallHandler {
                 }
             });
         } else if (call.method.startsWith("FirebaseVisionLabelDetector#detectFrom")) {
-            FirebaseVisionImageLabeler detector = FirebaseVision.getInstance().getOnDeviceImageLabeler();
-            detector.processImage(image).addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionImageLabel>>() {
-                @Override
-                public void onSuccess(List<FirebaseVisionImageLabel> labels) {
-                    result.success(processImageLabelingResult(labels));
-                }
-            }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    // Task failed with an exception
-                    e.printStackTrace();
-                }
-            });
+            FirebaseVisionImageLabeler detector = FirebaseVision.getInstance()
+                    .getOnDeviceImageLabeler();
+            detector.processImage(image)
+                    .addOnSuccessListener(
+                            new OnSuccessListener<List<FirebaseVisionImageLabel>>() {
+                                @Override
+                                public void onSuccess(List<FirebaseVisionImageLabel> labels) {
+                                    result.success(processImageLabelingResult(labels));
+                                }
+                            })
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    // Task failed with an exception
+                                    e.printStackTrace();
+                                }
+                            });
         } else if (call.method.startsWith("FirebaseVisionFaceDetector#detectFrom")) {
             FirebaseVisionFaceDetector detector;
             if (call.argument("option") != null) {
@@ -670,10 +676,9 @@ public class MlkitPlugin implements MethodCallHandler {
         return dataBuilder.build();
     }
 
-    private ImmutableList<ImmutableMap<String, Object>> processImageLabelingResult(
-            List<FirebaseVisionImageLabel> labels) {
-        ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder = ImmutableList
-                .<ImmutableMap<String, Object>>builder();
+    private ImmutableList<ImmutableMap<String, Object>> processImageLabelingResult(List<FirebaseVisionImageLabel> labels) {
+        ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
+                ImmutableList.<ImmutableMap<String, Object>>builder();
 
         for (FirebaseVisionImageLabel label : labels) {
             ImmutableMap.Builder<String, Object> labelBuilder = ImmutableMap.<String, Object>builder();
