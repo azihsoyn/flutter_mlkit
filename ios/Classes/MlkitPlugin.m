@@ -230,18 +230,18 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                 [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:requireWifi
                                                 allowsBackgroundDownloading:requireDeviceIdle];
             }
-            FIRRemoteModel *cloudModelSource =
+            FIRRemoteModel *remoteModelSource =
             [[FIRRemoteModel alloc] initWithName:modeName
                                         allowsModelUpdates:enableModelUpdates
                                          initialConditions:initialDownloadConditions
                                           updateConditions:updatesDownloadConditions];
             BOOL registrationSuccess =
-            [[FIRModelManager modelManager] registerRemoteModel:cloudModelSource];
+            [[FIRModelManager modelManager] registerRemoteModel:remoteModelSource];
         }
     } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
-        NSString *RemoteModelName = call.arguments[@"remoteModelName"];
+        NSString *remoteModelName = call.arguments[@"remoteModelName"];
         // TODO local model
-        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:cloudModelName                                                                localModelName:nil];
+        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:remoteModelName                                                                localModelName:nil];
         FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
         FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
         NSLog(@"Building input options");
