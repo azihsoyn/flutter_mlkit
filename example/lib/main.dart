@@ -7,6 +7,7 @@ import 'package:mlkit/mlkit.dart';
 
 import 'custom-models.dart';
 import 'vision-text.dart';
+import 'face-detect.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -18,6 +19,7 @@ void main() {
       '/': (context) => StartScreen(),
       '/vision-text': (context) => VisionTextWidget(),
       '/custom-model': (context) => CustomModelWidget(),
+      '/face-detect': (context) => FaceDetectWidget(),
     },
   ));
 }
@@ -34,7 +36,7 @@ class StartScreen extends StatelessWidget {
           children: [
             Center(
               child: RaisedButton(
-                child: Text('MLKit vision text detection'),
+                child: Text('Recognize text'),
                 onPressed: () {
                   // Navigate to the second screen using a named route
                   Navigator.pushNamed(context, '/vision-text');
@@ -43,10 +45,19 @@ class StartScreen extends StatelessWidget {
             ),
             Center(
               child: RaisedButton(
-                child: Text('Object detection with custom model'),
+                child: Text('Custom model'),
                 onPressed: () {
                   // Navigate to the second screen using a named route
                   Navigator.pushNamed(context, '/custom-model');
+                },
+              ),
+            ),
+            Center(
+              child: RaisedButton(
+                child: Text('Detect faces'),
+                onPressed: () {
+                  // Navigate to the second screen using a named route
+                  Navigator.pushNamed(context, '/face-detect');
                 },
               ),
             ),
