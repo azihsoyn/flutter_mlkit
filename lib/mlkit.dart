@@ -422,11 +422,13 @@ class VisionFaceDetectorOptions {
   final VisionFaceDetectorLandmark landmarkType;
   final double minFaceSize;
   final bool isTrackingEnabled;
+  VisionFaceDetectorContourMode contourMode;
 
   VisionFaceDetectorOptions(
       {this.classificationType: VisionFaceDetectorClassification.None,
       this.modeType: VisionFaceDetectorMode.Fast,
       this.landmarkType: VisionFaceDetectorLandmark.None,
+      this.contourMode: VisionFaceDetectorContourMode.NO_CONTOURS,
       this.minFaceSize: 0.1,
       this.isTrackingEnabled: false});
 
@@ -437,6 +439,7 @@ class VisionFaceDetectorOptions {
       "landmarkType": landmarkType.value,
       "minFaceSize": minFaceSize,
       "isTrackingEnabled": isTrackingEnabled,
+      "contourMode": contourMode.value,
     };
   }
 }
@@ -465,6 +468,13 @@ class VisionFaceDetectorLandmark {
   static const All = const VisionFaceDetectorLandmark._(2);
 }
 
+class VisionFaceDetectorContourMode {
+  final int value;
+  const VisionFaceDetectorContourMode._(int value) : value = value;
+  static const NO_CONTOURS = const VisionFaceDetectorContourMode._(1);
+  static const ALL_CONTOURS = const VisionFaceDetectorContourMode._(2);
+}
+
 class VisionFaceLandmark {
   final FaceLandmarkType type;
   final VisionPoint position;
@@ -472,6 +482,17 @@ class VisionFaceLandmark {
   VisionFaceLandmark._(Map<dynamic, dynamic> data)
       : type = FaceLandmarkType._(data['type']),
         position = VisionPoint._(data['position']);
+}
+
+class VisionFaceContour {
+  final FaceContourType type;
+  final List<VisionPoint> points;
+
+  VisionFaceContour._(Map<dynamic, dynamic> data)
+      : type = FaceContourType._(data['type']),
+        points = data['points']
+            .map<VisionPoint>((dynamic item) => VisionPoint._(item))
+            .toList();
 }
 
 // ios
@@ -511,6 +532,28 @@ class FaceLandmarkType {
   static const MouthRight = const FaceLandmarkType._(11);
 }
 
+// android
+//   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/face/FirebaseVisionFaceContour
+class FaceContourType {
+  final int value;
+
+  const FaceContourType._(int value) : value = value;
+  static const AllPoints = const FaceContourType._(1);
+  static const Face = const FaceContourType._(2);
+  static const LeftEeybrowTop = const FaceContourType._(3);
+  static const LeftEeybrowBottom = const FaceContourType._(4);
+  static const RightEyebrowTop = const FaceContourType._(5);
+  static const RightEyebrowBottom = const FaceContourType._(6);
+  static const LeftEye = const FaceContourType._(7);
+  static const RightEye = const FaceContourType._(8);
+  static const UpperLipTop = const FaceContourType._(9);
+  static const UpperLipBottom = const FaceContourType._(10);
+  static const LowerLipTop = const FaceContourType._(11);
+  static const LowerLipBottom = const FaceContourType._(12);
+  static const NoseBridge = const FaceContourType._(13);
+  static const NoseBottom = const FaceContourType._(14);
+}
+
 class VisionFace {
   final Map<dynamic, dynamic> _data;
 
@@ -540,6 +583,11 @@ class VisionFace {
       _data['landmarks'][type.value] == null
           ? null
           : VisionFaceLandmark._(_data['landmarks'][type.value]);
+
+  VisionFaceContour getContour(FaceContourType type) =>
+      _data['contours'][type.value] == null
+          ? null
+          : VisionFaceContour._(_data['contours'][type.value]);
 }
 
 // ios
