@@ -8,7 +8,7 @@ import 'package:mlkit/mlkit.dart';
 import 'custom-models.dart';
 import 'vision-text.dart';
 import 'face-detect.dart';
-
+import 'label-image.dart';
 void main() {
   runApp(MaterialApp(
     title: 'Named Routes Demo',
@@ -20,6 +20,7 @@ void main() {
       '/vision-text': (context) => VisionTextWidget(),
       '/custom-model': (context) => CustomModelWidget(),
       '/face-detect': (context) => FaceDetectWidget(),
+      '/label-image': (context) => LabelImageWidget(),
     },
   ));
 }
@@ -58,6 +59,15 @@ class StartScreen extends StatelessWidget {
                 onPressed: () {
                   // Navigate to the second screen using a named route
                   Navigator.pushNamed(context, '/face-detect');
+                },
+              ),
+            ),
+            Center(
+              child: RaisedButton(
+                child: Text('Label Images'),
+                onPressed: () {
+                  // Navigate to the second screen using a named route
+                  Navigator.pushNamed(context, '/label-image');
                 },
               ),
             ),
