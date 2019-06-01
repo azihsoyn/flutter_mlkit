@@ -1,3 +1,10 @@
+## 0.13.0
+
+* Custom models extended.
+  This includes **Breaking change**.
+  See detail
+  https://github.com/azihsoyn/flutter_mlkit/pull/60/files#diff-f7c1b82f15256ddfe8b050684d919423
+
 ## 0.12.0
 
 * update firebase
