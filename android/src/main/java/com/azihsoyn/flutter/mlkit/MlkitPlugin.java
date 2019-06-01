@@ -7,10 +7,12 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.media.ExifInterface;
 import android.net.Uri;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.exifinterface.media.ExifInterface;
+
 import android.util.Log;
 
 import com.google.android.gms.tasks.Continuation;
@@ -49,6 +51,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -59,6 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import java.io.ByteArrayInputStream;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
@@ -69,18 +73,20 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
  * MlkitPlugin
  */
 public class MlkitPlugin implements MethodCallHandler {
-    private static final List<Integer> LandmarkTypes = Collections.unmodifiableList(new ArrayList<Integer>() {{
-        add(FirebaseVisionFaceLandmark.MOUTH_BOTTOM);
-        add(FirebaseVisionFaceLandmark.MOUTH_RIGHT);
-        add(FirebaseVisionFaceLandmark.MOUTH_LEFT);
-        add(FirebaseVisionFaceLandmark.RIGHT_EYE);
-        add(FirebaseVisionFaceLandmark.LEFT_EYE);
-        add(FirebaseVisionFaceLandmark.RIGHT_EAR);
-        add(FirebaseVisionFaceLandmark.LEFT_EAR);
-        add(FirebaseVisionFaceLandmark.RIGHT_CHEEK);
-        add(FirebaseVisionFaceLandmark.LEFT_CHEEK);
-        add(FirebaseVisionFaceLandmark.NOSE_BASE);
-    }});
+    private static final List<Integer> LandmarkTypes = Collections.unmodifiableList(new ArrayList<Integer>() {
+        {
+            add(FirebaseVisionFaceLandmark.MOUTH_BOTTOM);
+            add(FirebaseVisionFaceLandmark.MOUTH_RIGHT);
+            add(FirebaseVisionFaceLandmark.MOUTH_LEFT);
+            add(FirebaseVisionFaceLandmark.RIGHT_EYE);
+            add(FirebaseVisionFaceLandmark.LEFT_EYE);
+            add(FirebaseVisionFaceLandmark.RIGHT_EAR);
+            add(FirebaseVisionFaceLandmark.LEFT_EAR);
+            add(FirebaseVisionFaceLandmark.RIGHT_CHEEK);
+            add(FirebaseVisionFaceLandmark.LEFT_CHEEK);
+            add(FirebaseVisionFaceLandmark.NOSE_BASE);
+        }
+    });
     private static Context context;
     private static Activity activity;
 
@@ -99,7 +105,8 @@ public class MlkitPlugin implements MethodCallHandler {
         int l = list.size();
         int[] arr = new int[l];
         Iterator<Integer> iter = list.iterator();
-        for (int i = 0; i < l; i++) arr[i] = iter.next();
+        for (int i = 0; i < l; i++)
+            arr[i] = iter.next();
         return arr;
     }
 
@@ -107,7 +114,8 @@ public class MlkitPlugin implements MethodCallHandler {
         int l = list.size();
         int dim = 1;
         Iterator<Integer> iter = list.iterator();
-        for (int i = 0; i < l; i++) dim = dim * iter.next();
+        for (int i = 0; i < l; i++)
+            dim = dim * iter.next();
         return dim;
     }
 
@@ -159,41 +167,32 @@ public class MlkitPlugin implements MethodCallHandler {
 
         if (call.method.startsWith("FirebaseVisionTextDetector#detectFrom")) {
             FirebaseVisionTextRecognizer detector = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
-            detector.processImage(image)
-                    .addOnSuccessListener(
-                            new OnSuccessListener<FirebaseVisionText>() {
-                                @Override
-                                public void onSuccess(FirebaseVisionText texts) {
-                                    result.success(processTextRecognitionResult(texts));
-                                }
-                            })
-                    .addOnFailureListener(
-                            new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    // Task failed with an exception
-                                    e.printStackTrace();
-                                }
-                            });
+            detector.processImage(image).addOnSuccessListener(new OnSuccessListener<FirebaseVisionText>() {
+                @Override
+                public void onSuccess(FirebaseVisionText texts) {
+                    result.success(processTextRecognitionResult(texts));
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    // Task failed with an exception
+                    e.printStackTrace();
+                }
+            });
         } else if (call.method.startsWith("FirebaseVisionBarcodeDetector#detectFrom")) {
-            FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
-                    .getVisionBarcodeDetector();
-            detector.detectInImage(image)
-                    .addOnSuccessListener(
-                            new OnSuccessListener<List<FirebaseVisionBarcode>>() {
-                                @Override
-                                public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
-                                    result.success(processBarcodeRecognitionResult(barcodes));
-                                }
-                            })
-                    .addOnFailureListener(
-                            new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    // Task failed with an exception
-                                    e.printStackTrace();
-                                }
-                            });
+            FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance().getVisionBarcodeDetector();
+            detector.detectInImage(image).addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
+                @Override
+                public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
+                    result.success(processBarcodeRecognitionResult(barcodes));
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    // Task failed with an exception
+                    e.printStackTrace();
+                }
+            });
         } else if (call.method.startsWith("FirebaseVisionLabelDetector#detectFrom")) {
             FirebaseVisionImageLabeler detector = FirebaseVision.getInstance()
                     .getOnDeviceImageLabeler();
@@ -217,39 +216,32 @@ public class MlkitPlugin implements MethodCallHandler {
             FirebaseVisionFaceDetector detector;
             if (call.argument("option") != null) {
                 Map<String, Object> optionsMap = call.argument("option");
-                FirebaseVisionFaceDetectorOptions.Builder builder =
-                        new FirebaseVisionFaceDetectorOptions.Builder()
-                                .setPerformanceMode((int) optionsMap.get("modeType"))
-                                .setLandmarkMode((int) optionsMap.get("landmarkType"))
-                                .setClassificationMode((int) optionsMap.get("classificationType"))
-                                .setMinFaceSize((float) (double) optionsMap.get("minFaceSize"));
-                if((boolean) optionsMap.get("isTrackingEnabled")){
+                FirebaseVisionFaceDetectorOptions.Builder builder = new FirebaseVisionFaceDetectorOptions.Builder()
+                        .setPerformanceMode((int) optionsMap.get("modeType"))
+                        .setLandmarkMode((int) optionsMap.get("landmarkType"))
+                        .setClassificationMode((int) optionsMap.get("classificationType"))
+                        .setMinFaceSize((float) (double) optionsMap.get("minFaceSize"));
+                if ((boolean) optionsMap.get("isTrackingEnabled")) {
                     builder.enableTracking();
                 }
                 FirebaseVisionFaceDetectorOptions options = builder.build();
-                detector = FirebaseVision.getInstance()
-                        .getVisionFaceDetector(options);
+                detector = FirebaseVision.getInstance().getVisionFaceDetector(options);
             } else {
-                detector = FirebaseVision.getInstance()
-                        .getVisionFaceDetector();
+                detector = FirebaseVision.getInstance().getVisionFaceDetector();
             }
-            detector.detectInImage(image)
-                    .addOnSuccessListener(
-                            new OnSuccessListener<List<FirebaseVisionFace>>() {
-                                @Override
-                                public void onSuccess(List<FirebaseVisionFace> faces) {
-                                    result.success(processFaceDetectionResult(faces));
-                                }
-                            })
-                    .addOnFailureListener(
-                            new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    // Task failed with an exception
-                                    e.printStackTrace();
-                                }
-                            });
-        } else if (call.method.equals("FirebaseModelManager#registerCloudModelSource")) {
+            detector.detectInImage(image).addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionFace>>() {
+                @Override
+                public void onSuccess(List<FirebaseVisionFace> faces) {
+                    result.success(processFaceDetectionResult(faces));
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    // Task failed with an exception
+                    e.printStackTrace();
+                }
+            });
+        } else if (call.method.equals("FirebaseModelManager#registerRemoteModelSource")) {
             FirebaseModelManager manager = FirebaseModelManager.getInstance();
 
             if (call.argument("source") != null) {
@@ -260,7 +252,8 @@ public class MlkitPlugin implements MethodCallHandler {
                 cloudSourceBuilder.enableModelUpdates(enableModelUpdates);
 
                 if (sourceMap.get("initialDownloadConditions") != null) {
-                    Map<String, Boolean> conditionMap = (Map<String, Boolean>) sourceMap.get("initialDownloadConditions");
+                    Map<String, Boolean> conditionMap = (Map<String, Boolean>) sourceMap
+                            .get("initialDownloadConditions");
                     FirebaseModelDownloadConditions.Builder conditionsBuilder = new FirebaseModelDownloadConditions.Builder();
                     if (conditionMap.get("requireWifi")) {
                         conditionsBuilder.requireWifi();
@@ -275,7 +268,8 @@ public class MlkitPlugin implements MethodCallHandler {
                 }
 
                 if (sourceMap.get("updatesDownloadConditions") != null) {
-                    Map<String, Boolean> conditionMap = (Map<String, Boolean>) sourceMap.get("updatesDownloadConditions");
+                    Map<String, Boolean> conditionMap = (Map<String, Boolean>) sourceMap
+                            .get("updatesDownloadConditions");
                     FirebaseModelDownloadConditions.Builder conditionsBuilder = new FirebaseModelDownloadConditions.Builder();
                     if (conditionMap.get("requireWifi")) {
                         conditionsBuilder.requireWifi();
@@ -288,8 +282,10 @@ public class MlkitPlugin implements MethodCallHandler {
                     }
                     cloudSourceBuilder.setUpdatesDownloadConditions(conditionsBuilder.build());
                 }
+                FirebaseRemoteModel model = cloudSourceBuilder.build();
+                manager.registerRemoteModel(model);
+                manager.downloadRemoteModelIfNeeded(model);
 
-                manager.registerRemoteModel(cloudSourceBuilder.build());
             }
         } else if (call.method.equals("FirebaseModelManager#registerLocalModelSource")) {
             FirebaseModelManager manager = FirebaseModelManager.getInstance();
@@ -297,123 +293,132 @@ public class MlkitPlugin implements MethodCallHandler {
 
         } else if (call.method.equals("FirebaseModelInterpreter#run")) {
             FirebaseModelInterpreter mInterpreter;
-            String cloudModelName = call.argument("cloudModelName");
+            String remoteModelName = call.argument("remoteModelName");
             try {
+
                 FirebaseModelOptions modelOptions = new FirebaseModelOptions.Builder()
-                        .setRemoteModelName(cloudModelName)
+                        .setRemoteModelName(remoteModelName)
                         // TODO: local model
-                        //.setLocalModelName("my_local_model")
+                        // .setLocalModelName("my_local_model")
                         .build();
-
-                Map<String, Object> inputOutputOptionsMap = call.argument("inputOutputOptions");
-                int inputIndex = (int) inputOutputOptionsMap.get("inputIndex");
-                int inputDataType = (int) inputOutputOptionsMap.get("inputDataType");
-                ArrayList<Integer> _inputDims = (ArrayList<Integer>) inputOutputOptionsMap.get("inputDims");
-                final int[] inputDims = toArray(_inputDims);
-                int outputIndex = (int) inputOutputOptionsMap.get("outputIndex");
-                final int outputDataType = (int) inputOutputOptionsMap.get("outputDataType");
-                ArrayList<Integer> _outputDims = (ArrayList<Integer>) inputOutputOptionsMap.get("outputDims");
-                int[] outputDims = toArray(_outputDims);
-                FirebaseModelInputOutputOptions inputOutputOptions =
-                        new FirebaseModelInputOutputOptions.Builder()
-                                .setInputFormat(inputIndex, inputDataType, inputDims)
-                                .setOutputFormat(outputIndex, outputDataType, outputDims)
-                                .build();
-
-                byte[] data = (byte[]) call.argument("inputBytes");
-
-                mInterpreter = FirebaseModelInterpreter.getInstance(modelOptions);
+                FirebaseModelInputOutputOptions.Builder ioBuilder = new FirebaseModelInputOutputOptions.Builder();
                 FirebaseModelInputs.Builder inputsBuilder = new FirebaseModelInputs.Builder();
-                int bytesPerChannel = 1;
-                if(inputDataType == FirebaseModelDataType.FLOAT32 || inputDataType == FirebaseModelDataType.INT32) {
-                    bytesPerChannel = 4;
-                }else if(inputDataType == FirebaseModelDataType.LONG){
-                    bytesPerChannel = 8;
-                }
-                ByteBuffer buffer = ByteBuffer.allocateDirect(toDim(_inputDims)*bytesPerChannel);
-                buffer.order(ByteOrder.nativeOrder());
-                buffer.rewind();
-                buffer.put(data);
-                inputsBuilder.add(buffer);
 
+                final byte[] data = (byte[]) call.argument("inputBytes");
+
+                Map<String, List<Map<String, Object>>> inputOutputOptionsMap = call.argument("inputOutputOptions");
+
+                List<Map<String, Object>> inputOptions = inputOutputOptionsMap.get("inputOptions");
+                for (int i = 0; i < inputOptions.size(); i++) {
+
+                    int inputDataType = (int) inputOptions.get(i).get("dataType");
+                    ArrayList<Integer> _inputDims = (ArrayList<Integer>) inputOptions.get(i).get("dims");
+                    ioBuilder.setInputFormat(i, inputDataType, toArray(_inputDims));
+
+                    int bytesPerChannel = 1;
+                    if (inputDataType == FirebaseModelDataType.FLOAT32
+                            || inputDataType == FirebaseModelDataType.INT32) {
+                        bytesPerChannel = 4;
+                    } else if (inputDataType == FirebaseModelDataType.LONG) {
+                        bytesPerChannel = 8;
+                    }
+                    ByteBuffer buffer = ByteBuffer.allocateDirect(toDim(_inputDims) * bytesPerChannel);
+                    buffer.order(ByteOrder.nativeOrder());
+                    buffer.rewind();
+                    buffer.put(data);
+                    inputsBuilder.add(buffer);
+                }
+
+                final List<Map<String, Object>> outputOptions = inputOutputOptionsMap.get("outputOptions");
+                for (int i = 0; i < outputOptions.size(); i++) {
+                    int outputDataType = (int) outputOptions.get(i).get("dataType");
+                    ArrayList<Integer> _outputDims = (ArrayList<Integer>) outputOptions.get(i).get("dims");
+                    ioBuilder.setOutputFormat(i, outputDataType, toArray(_outputDims));
+                }
+
+                FirebaseModelInputOutputOptions inputOutputOptions = ioBuilder.build();
+                mInterpreter = FirebaseModelInterpreter.getInstance(modelOptions);
                 FirebaseModelInputs inputs = inputsBuilder.build();
-                mInterpreter
-                        .run(inputs, inputOutputOptions)
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                e.printStackTrace();
-                                return;
+
+                mInterpreter.run(inputs, inputOutputOptions).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        e.printStackTrace();
+                        Log.e("FirebaseModelInterpreter", e.getMessage());
+                        return;
+                    }
+                }).continueWith(new Continuation<FirebaseModelOutputs, List<String>>() {
+                    @Override
+                    public List<String> then(Task<FirebaseModelOutputs> task) {
+                        try {
+                            ImmutableList.Builder<Object> dataBuilder = ImmutableList.<Object>builder();
+                            for (int i = 0; i < outputOptions.size(); i++) {
+                                int outputDataType = (int) outputOptions.get(i).get("dataType");
+                                int[] outputDims = toArray((ArrayList<Integer>) outputOptions.get(i).get("dims"));
+                                Object res = task.getResult().getOutput(i);
+                                switch (outputDataType) {
+                                case FirebaseModelDataType.BYTE:
+                                    dataBuilder.add(processList(byte.class, res));
+                                    break;
+                                case FirebaseModelDataType.INT32:
+                                    dataBuilder.add(processList(int.class, res));
+                                    break;
+                                case FirebaseModelDataType.LONG:
+                                    dataBuilder.add(processList(long.class, res));
+                                    break;
+
+                                case FirebaseModelDataType.FLOAT32:
+                                    Log.d("Infer",res.toString());
+
+                                    dataBuilder.add(processList(double.class, res));
+                                    break;
+                                default:
+                                    break;
+                                }
                             }
-                        })
-                        .continueWith(
-                                new Continuation<FirebaseModelOutputs, List<String>>() {
-                                    @Override
-                                    public List<String> then(Task<FirebaseModelOutputs> task) {
-                                        switch (outputDataType) {
-                                            case FirebaseModelDataType.BYTE:
-                                                result.success(task.getResult().<byte[][]>getOutput(0)[0]);
-                                                break;
-                                            case FirebaseModelDataType.FLOAT32:
-                                                // WORKAROUND.
-                                                // flutter cannot convert float[]
-                                                float[] tmp = task.getResult().<float[][]>getOutput(0)[0];
-                                                FloatBuffer fb = FloatBuffer.allocate(tmp.length);
-                                                fb.put(tmp);
-                                                ByteBuffer byteBuffer = ByteBuffer.allocate(fb.capacity() * 4);
-                                                byteBuffer.asFloatBuffer().put(fb);
-                                                byte[] bytearray = byteBuffer.array();
-                                                result.success(bytearray);
-                                                break;
-                                            case FirebaseModelDataType.INT32:
-                                                result.success(task.getResult().<int[][]>getOutput(0)[0]);
-                                                break;
-                                            case FirebaseModelDataType.LONG:
-                                                result.success(task.getResult().<long[][]>getOutput(0)[0]);
-                                                break;
-                                            default:
-                                                result.success(null);
-                                                break;
-                                        }
-                                        return null;
-                                    }
-                                });
+                            result.success(dataBuilder.build());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Log.e("FirebaseModelInterpreter", e.getMessage());
+                        }
+                        return null;
+
+                    }
+                });
             } catch (FirebaseMLException e) {
                 e.printStackTrace();
                 Log.e("error", e.getMessage());
                 return;
             }
         } else if (call.method.equals("getLanguage")) {
-            FirebaseLanguageIdentification languageIdentifier =
-                    FirebaseNaturalLanguage.getInstance().getLanguageIdentification();
+            FirebaseLanguageIdentification languageIdentifier = FirebaseNaturalLanguage.getInstance()
+                    .getLanguageIdentification();
             languageIdentifier.identifyLanguage((String) call.argument("text"))
-                    .addOnSuccessListener(
-                            new OnSuccessListener<String>() {
-                                @Override
-                                public void onSuccess(@Nullable String languageCode) {
-                                    if (!Objects.equals(languageCode, "und")) {
-                                        result.success(languageCode);
-                                    } else {
-                                        result.error("0", "Language not found", "Unknown Language");
-                                    }
-                                }
-                            })
-                    .addOnFailureListener(
-                            new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    result.error("0", "Language not found", e);
-                                }
-                            });
+                    .addOnSuccessListener(new OnSuccessListener<String>() {
+                        @Override
+                        public void onSuccess(@Nullable String languageCode) {
+                            if (!Objects.equals(languageCode, "und")) {
+                                result.success(languageCode);
+                            } else {
+                                result.error("0", "Language not found", "Unknown Language");
+                            }
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            result.error("0", "Language not found", e);
+                        }
+                    });
 
         } else {
             result.notImplemented();
         }
     }
 
-    private ImmutableList<ImmutableMap<String, Object>> processBarcodeRecognitionResult(List<FirebaseVisionBarcode> barcodes) {
-        ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
-                ImmutableList.<ImmutableMap<String, Object>>builder();
+    private ImmutableList<ImmutableMap<String, Object>> processBarcodeRecognitionResult(
+            List<FirebaseVisionBarcode> barcodes) {
+        ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder = ImmutableList
+                .<ImmutableMap<String, Object>>builder();
 
         for (FirebaseVisionBarcode barcode : barcodes) {
             ImmutableMap.Builder<String, Object> barcodeBuilder = ImmutableMap.<String, Object>builder();
@@ -424,8 +429,8 @@ public class MlkitPlugin implements MethodCallHandler {
             barcodeBuilder.put("rect_right", (double) bounds.right);
             barcodeBuilder.put("rect_left", (double) bounds.left);
 
-            ImmutableList.Builder<ImmutableMap<String, Integer>> pointsBuilder =
-                    ImmutableList.<ImmutableMap<String, Integer>>builder();
+            ImmutableList.Builder<ImmutableMap<String, Integer>> pointsBuilder = ImmutableList
+                    .<ImmutableMap<String, Integer>>builder();
             for (Point corner : barcode.getCornerPoints()) {
                 ImmutableMap.Builder<String, Integer> pointBuilder = ImmutableMap.<String, Integer>builder();
                 pointBuilder.put("x", corner.x);
@@ -442,115 +447,111 @@ public class MlkitPlugin implements MethodCallHandler {
 
             ImmutableMap.Builder<String, Object> typeValueBuilder = ImmutableMap.<String, Object>builder();
             switch (valueType) {
-                case FirebaseVisionBarcode.TYPE_EMAIL:
-                    typeValueBuilder.put("type", barcode.getEmail().getType());
-                    typeValueBuilder.put("address", barcode.getEmail().getAddress());
-                    typeValueBuilder.put("body", barcode.getEmail().getBody());
-                    typeValueBuilder.put("subject", barcode.getEmail().getSubject());
-                    barcodeBuilder.put("email", typeValueBuilder.build());
-                    break;
-                case FirebaseVisionBarcode.TYPE_PHONE:
-                    typeValueBuilder.put("number", barcode.getPhone().getNumber());
-                    typeValueBuilder.put("type", barcode.getPhone().getType());
-                    barcodeBuilder.put("phone", typeValueBuilder.build());
-                    break;
-                case FirebaseVisionBarcode.TYPE_SMS:
-                    typeValueBuilder.put("message", barcode.getSms().getMessage());
-                    typeValueBuilder.put("phone_number", barcode.getSms().getPhoneNumber());
-                    barcodeBuilder.put("sms", typeValueBuilder.build());
-                    break;
-                case FirebaseVisionBarcode.TYPE_URL:
-                    typeValueBuilder.put("title", barcode.getUrl().getTitle());
-                    typeValueBuilder.put("url", barcode.getUrl().getUrl());
-                    barcodeBuilder.put("url", typeValueBuilder.build());
-                    break;
-                case FirebaseVisionBarcode.TYPE_WIFI:
-                    typeValueBuilder.put("ssid", barcode.getWifi().getSsid());
-                    typeValueBuilder.put("password", barcode.getWifi().getPassword());
-                    typeValueBuilder.put("encryption_type", barcode.getWifi().getEncryptionType());
-                    barcodeBuilder.put("wifi", typeValueBuilder.build());
-                    break;
-                case FirebaseVisionBarcode.TYPE_GEO:
-                    typeValueBuilder.put("latitude", barcode.getGeoPoint().getLat());
-                    typeValueBuilder.put("longitude", barcode.getGeoPoint().getLng());
-                    barcodeBuilder.put("geo_point", typeValueBuilder.build());
-                    break;
-                case FirebaseVisionBarcode.TYPE_CONTACT_INFO:
-                    ImmutableList.Builder<ImmutableMap<String, Object>> addressesBuilder =
-                            ImmutableList.builder();
-                    for (FirebaseVisionBarcode.Address address : barcode.getContactInfo().getAddresses()) {
-                        ImmutableMap.Builder<String, Object> addressBuilder = ImmutableMap.builder();
-                        addressBuilder.put("address_lines", address.getAddressLines());
-                        addressBuilder.put("type", address.getType());
-                        addressesBuilder.add(addressBuilder.build());
-                    }
-                    typeValueBuilder.put("addresses", addressesBuilder.build());
+            case FirebaseVisionBarcode.TYPE_EMAIL:
+                typeValueBuilder.put("type", barcode.getEmail().getType());
+                typeValueBuilder.put("address", barcode.getEmail().getAddress());
+                typeValueBuilder.put("body", barcode.getEmail().getBody());
+                typeValueBuilder.put("subject", barcode.getEmail().getSubject());
+                barcodeBuilder.put("email", typeValueBuilder.build());
+                break;
+            case FirebaseVisionBarcode.TYPE_PHONE:
+                typeValueBuilder.put("number", barcode.getPhone().getNumber());
+                typeValueBuilder.put("type", barcode.getPhone().getType());
+                barcodeBuilder.put("phone", typeValueBuilder.build());
+                break;
+            case FirebaseVisionBarcode.TYPE_SMS:
+                typeValueBuilder.put("message", barcode.getSms().getMessage());
+                typeValueBuilder.put("phone_number", barcode.getSms().getPhoneNumber());
+                barcodeBuilder.put("sms", typeValueBuilder.build());
+                break;
+            case FirebaseVisionBarcode.TYPE_URL:
+                typeValueBuilder.put("title", barcode.getUrl().getTitle());
+                typeValueBuilder.put("url", barcode.getUrl().getUrl());
+                barcodeBuilder.put("url", typeValueBuilder.build());
+                break;
+            case FirebaseVisionBarcode.TYPE_WIFI:
+                typeValueBuilder.put("ssid", barcode.getWifi().getSsid());
+                typeValueBuilder.put("password", barcode.getWifi().getPassword());
+                typeValueBuilder.put("encryption_type", barcode.getWifi().getEncryptionType());
+                barcodeBuilder.put("wifi", typeValueBuilder.build());
+                break;
+            case FirebaseVisionBarcode.TYPE_GEO:
+                typeValueBuilder.put("latitude", barcode.getGeoPoint().getLat());
+                typeValueBuilder.put("longitude", barcode.getGeoPoint().getLng());
+                barcodeBuilder.put("geo_point", typeValueBuilder.build());
+                break;
+            case FirebaseVisionBarcode.TYPE_CONTACT_INFO:
+                ImmutableList.Builder<ImmutableMap<String, Object>> addressesBuilder = ImmutableList.builder();
+                for (FirebaseVisionBarcode.Address address : barcode.getContactInfo().getAddresses()) {
+                    ImmutableMap.Builder<String, Object> addressBuilder = ImmutableMap.builder();
+                    addressBuilder.put("address_lines", address.getAddressLines());
+                    addressBuilder.put("type", address.getType());
+                    addressesBuilder.add(addressBuilder.build());
+                }
+                typeValueBuilder.put("addresses", addressesBuilder.build());
 
-                    ImmutableList.Builder<ImmutableMap<String, Object>> emailsBuilder =
-                            ImmutableList.builder();
-                    for (FirebaseVisionBarcode.Email email : barcode.getContactInfo().getEmails()) {
-                        ImmutableMap.Builder<String, Object> emailBuilder = ImmutableMap.builder();
-                        emailBuilder.put("address", email.getAddress());
-                        emailBuilder.put("type", email.getType());
-                        emailBuilder.put("body", email.getBody());
-                        emailBuilder.put("subject", email.getSubject());
-                        emailsBuilder.add(emailBuilder.build());
-                    }
-                    typeValueBuilder.put("emails", emailsBuilder.build());
+                ImmutableList.Builder<ImmutableMap<String, Object>> emailsBuilder = ImmutableList.builder();
+                for (FirebaseVisionBarcode.Email email : barcode.getContactInfo().getEmails()) {
+                    ImmutableMap.Builder<String, Object> emailBuilder = ImmutableMap.builder();
+                    emailBuilder.put("address", email.getAddress());
+                    emailBuilder.put("type", email.getType());
+                    emailBuilder.put("body", email.getBody());
+                    emailBuilder.put("subject", email.getSubject());
+                    emailsBuilder.add(emailBuilder.build());
+                }
+                typeValueBuilder.put("emails", emailsBuilder.build());
 
-                    ImmutableMap.Builder<String, Object> nameBuilder = ImmutableMap.builder();
-                    nameBuilder.put("formatted_name", barcode.getContactInfo().getName().getFormattedName());
-                    nameBuilder.put("first", barcode.getContactInfo().getName().getFirst());
-                    nameBuilder.put("last", barcode.getContactInfo().getName().getLast());
-                    nameBuilder.put("middle", barcode.getContactInfo().getName().getMiddle());
-                    nameBuilder.put("prefix", barcode.getContactInfo().getName().getPrefix());
-                    nameBuilder.put("pronounciation", barcode.getContactInfo().getName().getPronunciation());
-                    nameBuilder.put("suffix", barcode.getContactInfo().getName().getSuffix());
-                    typeValueBuilder.put("name", nameBuilder.build());
+                ImmutableMap.Builder<String, Object> nameBuilder = ImmutableMap.builder();
+                nameBuilder.put("formatted_name", barcode.getContactInfo().getName().getFormattedName());
+                nameBuilder.put("first", barcode.getContactInfo().getName().getFirst());
+                nameBuilder.put("last", barcode.getContactInfo().getName().getLast());
+                nameBuilder.put("middle", barcode.getContactInfo().getName().getMiddle());
+                nameBuilder.put("prefix", barcode.getContactInfo().getName().getPrefix());
+                nameBuilder.put("pronounciation", barcode.getContactInfo().getName().getPronunciation());
+                nameBuilder.put("suffix", barcode.getContactInfo().getName().getSuffix());
+                typeValueBuilder.put("name", nameBuilder.build());
 
+                ImmutableList.Builder<ImmutableMap<String, Object>> phonesBuilder = ImmutableList.builder();
+                for (FirebaseVisionBarcode.Phone phone : barcode.getContactInfo().getPhones()) {
+                    ImmutableMap.Builder<String, Object> phoneBuilder = ImmutableMap.builder();
+                    phoneBuilder.put("number", phone.getNumber());
+                    phoneBuilder.put("type", phone.getType());
+                    phonesBuilder.add(phoneBuilder.build());
+                }
+                typeValueBuilder.put("phones", phonesBuilder.build());
 
-                    ImmutableList.Builder<ImmutableMap<String, Object>> phonesBuilder =
-                            ImmutableList.builder();
-                    for (FirebaseVisionBarcode.Phone phone : barcode.getContactInfo().getPhones()) {
-                        ImmutableMap.Builder<String, Object> phoneBuilder = ImmutableMap.builder();
-                        phoneBuilder.put("number", phone.getNumber());
-                        phoneBuilder.put("type", phone.getType());
-                        phonesBuilder.add(phoneBuilder.build());
-                    }
-                    typeValueBuilder.put("phones", phonesBuilder.build());
+                typeValueBuilder.put("urls", barcode.getContactInfo().getUrls());
+                typeValueBuilder.put("job_title", barcode.getContactInfo().getTitle());
+                typeValueBuilder.put("organization", barcode.getContactInfo().getOrganization());
 
-                    typeValueBuilder.put("urls", barcode.getContactInfo().getUrls());
-                    typeValueBuilder.put("job_title", barcode.getContactInfo().getTitle());
-                    typeValueBuilder.put("organization", barcode.getContactInfo().getOrganization());
-
-                    barcodeBuilder.put("contact_info", typeValueBuilder.build());
-                    break;
-                case FirebaseVisionBarcode.TYPE_CALENDAR_EVENT:
-                    typeValueBuilder.put("event_description", barcode.getCalendarEvent().getDescription());
-                    typeValueBuilder.put("location", barcode.getCalendarEvent().getLocation());
-                    typeValueBuilder.put("organizer", barcode.getCalendarEvent().getOrganizer());
-                    typeValueBuilder.put("status", barcode.getCalendarEvent().getStatus());
-                    typeValueBuilder.put("summary", barcode.getCalendarEvent().getSummary());
-                    typeValueBuilder.put("start", barcode.getCalendarEvent().getStart().getRawValue());
-                    typeValueBuilder.put("end", barcode.getCalendarEvent().getEnd().getRawValue());
-                    barcodeBuilder.put("calendar_event", typeValueBuilder.build());
-                    break;
-                case FirebaseVisionBarcode.TYPE_DRIVER_LICENSE:
-                    typeValueBuilder.put("first_name", barcode.getDriverLicense().getFirstName());
-                    typeValueBuilder.put("middle_name", barcode.getDriverLicense().getMiddleName());
-                    typeValueBuilder.put("last_name", barcode.getDriverLicense().getLastName());
-                    typeValueBuilder.put("gender", barcode.getDriverLicense().getGender());
-                    typeValueBuilder.put("address_city", barcode.getDriverLicense().getAddressCity());
-                    typeValueBuilder.put("address_state", barcode.getDriverLicense().getAddressState());
-                    typeValueBuilder.put("address_zip", barcode.getDriverLicense().getAddressZip());
-                    typeValueBuilder.put("birth_date", barcode.getDriverLicense().getBirthDate());
-                    typeValueBuilder.put("document_type", barcode.getDriverLicense().getDocumentType());
-                    typeValueBuilder.put("license_number", barcode.getDriverLicense().getLicenseNumber());
-                    typeValueBuilder.put("expiry_date", barcode.getDriverLicense().getExpiryDate());
-                    typeValueBuilder.put("issuing_date", barcode.getDriverLicense().getIssueDate());
-                    typeValueBuilder.put("issuing_country", barcode.getDriverLicense().getIssuingCountry());
-                    barcodeBuilder.put("calendar_event", typeValueBuilder.build());
-                    break;
+                barcodeBuilder.put("contact_info", typeValueBuilder.build());
+                break;
+            case FirebaseVisionBarcode.TYPE_CALENDAR_EVENT:
+                typeValueBuilder.put("event_description", barcode.getCalendarEvent().getDescription());
+                typeValueBuilder.put("location", barcode.getCalendarEvent().getLocation());
+                typeValueBuilder.put("organizer", barcode.getCalendarEvent().getOrganizer());
+                typeValueBuilder.put("status", barcode.getCalendarEvent().getStatus());
+                typeValueBuilder.put("summary", barcode.getCalendarEvent().getSummary());
+                typeValueBuilder.put("start", barcode.getCalendarEvent().getStart().getRawValue());
+                typeValueBuilder.put("end", barcode.getCalendarEvent().getEnd().getRawValue());
+                barcodeBuilder.put("calendar_event", typeValueBuilder.build());
+                break;
+            case FirebaseVisionBarcode.TYPE_DRIVER_LICENSE:
+                typeValueBuilder.put("first_name", barcode.getDriverLicense().getFirstName());
+                typeValueBuilder.put("middle_name", barcode.getDriverLicense().getMiddleName());
+                typeValueBuilder.put("last_name", barcode.getDriverLicense().getLastName());
+                typeValueBuilder.put("gender", barcode.getDriverLicense().getGender());
+                typeValueBuilder.put("address_city", barcode.getDriverLicense().getAddressCity());
+                typeValueBuilder.put("address_state", barcode.getDriverLicense().getAddressState());
+                typeValueBuilder.put("address_zip", barcode.getDriverLicense().getAddressZip());
+                typeValueBuilder.put("birth_date", barcode.getDriverLicense().getBirthDate());
+                typeValueBuilder.put("document_type", barcode.getDriverLicense().getDocumentType());
+                typeValueBuilder.put("license_number", barcode.getDriverLicense().getLicenseNumber());
+                typeValueBuilder.put("expiry_date", barcode.getDriverLicense().getExpiryDate());
+                typeValueBuilder.put("issuing_date", barcode.getDriverLicense().getIssueDate());
+                typeValueBuilder.put("issuing_country", barcode.getDriverLicense().getIssuingCountry());
+                barcodeBuilder.put("calendar_event", typeValueBuilder.build());
+                break;
             }
 
             dataBuilder.add(barcodeBuilder.build());
@@ -560,8 +561,8 @@ public class MlkitPlugin implements MethodCallHandler {
     }
 
     private ImmutableList<ImmutableMap<String, Object>> processTextRecognitionResult(FirebaseVisionText texts) {
-        ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
-                ImmutableList.<ImmutableMap<String, Object>>builder();
+        ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder = ImmutableList
+                .<ImmutableMap<String, Object>>builder();
 
         List<FirebaseVisionText.TextBlock> blocks = texts.getTextBlocks();
         if (blocks.size() == 0) {
@@ -574,8 +575,8 @@ public class MlkitPlugin implements MethodCallHandler {
             blockBuilder.put("rect_top", (double) blocks.get(i).getBoundingBox().top);
             blockBuilder.put("rect_right", (double) blocks.get(i).getBoundingBox().right);
             blockBuilder.put("rect_left", (double) blocks.get(i).getBoundingBox().left);
-            ImmutableList.Builder<ImmutableMap<String, Integer>> blockPointsBuilder =
-                    ImmutableList.<ImmutableMap<String, Integer>>builder();
+            ImmutableList.Builder<ImmutableMap<String, Integer>> blockPointsBuilder = ImmutableList
+                    .<ImmutableMap<String, Integer>>builder();
             for (int p = 0; p < blocks.get(i).getCornerPoints().length; p++) {
                 ImmutableMap.Builder<String, Integer> pointBuilder = ImmutableMap.<String, Integer>builder();
                 pointBuilder.put("x", blocks.get(i).getCornerPoints()[p].x);
@@ -585,7 +586,8 @@ public class MlkitPlugin implements MethodCallHandler {
             blockBuilder.put("points", blockPointsBuilder.build());
 
             List<FirebaseVisionText.Line> lines = blocks.get(i).getLines();
-            ImmutableList.Builder<ImmutableMap<String, Object>> linesBuilder = ImmutableList.<ImmutableMap<String, Object>>builder();
+            ImmutableList.Builder<ImmutableMap<String, Object>> linesBuilder = ImmutableList
+                    .<ImmutableMap<String, Object>>builder();
             for (int j = 0; j < lines.size(); j++) {
                 ImmutableMap.Builder<String, Object> lineBuilder = ImmutableMap.<String, Object>builder();
                 lineBuilder.put("text", lines.get(j).getText());
@@ -593,7 +595,8 @@ public class MlkitPlugin implements MethodCallHandler {
                 lineBuilder.put("rect_top", (double) lines.get(j).getBoundingBox().top);
                 lineBuilder.put("rect_right", (double) lines.get(j).getBoundingBox().right);
                 lineBuilder.put("rect_left", (double) lines.get(j).getBoundingBox().left);
-                ImmutableList.Builder<ImmutableMap<String, Integer>> linePointsBuilder = ImmutableList.<ImmutableMap<String, Integer>>builder();
+                ImmutableList.Builder<ImmutableMap<String, Integer>> linePointsBuilder = ImmutableList
+                        .<ImmutableMap<String, Integer>>builder();
                 for (int p = 0; p < lines.get(j).getCornerPoints().length; p++) {
                     ImmutableMap.Builder<String, Integer> pointBuilder = ImmutableMap.<String, Integer>builder();
                     pointBuilder.put("x", lines.get(j).getCornerPoints()[p].x);
@@ -604,7 +607,8 @@ public class MlkitPlugin implements MethodCallHandler {
 
                 List<FirebaseVisionText.Element> elements = lines.get(j).getElements();
 
-                ImmutableList.Builder<ImmutableMap<String, Object>> elementsBuilder = ImmutableList.<ImmutableMap<String, Object>>builder();
+                ImmutableList.Builder<ImmutableMap<String, Object>> elementsBuilder = ImmutableList
+                        .<ImmutableMap<String, Object>>builder();
                 for (int k = 0; k < elements.size(); k++) {
                     ImmutableMap.Builder<String, Object> elementBuilder = ImmutableMap.<String, Object>builder();
                     elementBuilder.put("text", elements.get(k).getText());
@@ -612,7 +616,8 @@ public class MlkitPlugin implements MethodCallHandler {
                     elementBuilder.put("rect_top", (double) elements.get(k).getBoundingBox().top);
                     elementBuilder.put("rect_right", (double) elements.get(k).getBoundingBox().right);
                     elementBuilder.put("rect_left", (double) elements.get(k).getBoundingBox().left);
-                    ImmutableList.Builder<ImmutableMap<String, Integer>> elementPointsBuilder = ImmutableList.<ImmutableMap<String, Integer>>builder();
+                    ImmutableList.Builder<ImmutableMap<String, Integer>> elementPointsBuilder = ImmutableList
+                            .<ImmutableMap<String, Integer>>builder();
                     for (int p = 0; p < elements.get(k).getCornerPoints().length; p++) {
                         ImmutableMap.Builder<String, Integer> pointBuilder = ImmutableMap.<String, Integer>builder();
                         pointBuilder.put("x", elements.get(k).getCornerPoints()[p].x);
@@ -632,8 +637,8 @@ public class MlkitPlugin implements MethodCallHandler {
     }
 
     private ImmutableList<ImmutableMap<String, Object>> processFaceDetectionResult(List<FirebaseVisionFace> faces) {
-        ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder =
-                ImmutableList.<ImmutableMap<String, Object>>builder();
+        ImmutableList.Builder<ImmutableMap<String, Object>> dataBuilder = ImmutableList
+                .<ImmutableMap<String, Object>>builder();
 
         for (FirebaseVisionFace face : faces) {
             ImmutableMap.Builder<String, Object> faceBuilder = ImmutableMap.<String, Object>builder();
@@ -665,7 +670,6 @@ public class MlkitPlugin implements MethodCallHandler {
             }
             faceBuilder.put("landmarks", landmarksBuilder.build());
 
-
             dataBuilder.add(faceBuilder.build());
         }
 
@@ -689,22 +693,43 @@ public class MlkitPlugin implements MethodCallHandler {
         return dataBuilder.build();
     }
 
+    private <T> ImmutableList<Object> processList(Class<T> clazz, Object o) {
+        ImmutableList.Builder<Object> builder = ImmutableList.<Object>builder();
+        if (o.getClass().isArray()) {
+            int length = Array.getLength(o);
+            for (int i = 0; i < length; i++) {
+                Object o2 = Array.get(o, i);
+                if (o2.getClass().isArray()) {
+                    builder.add(processList(clazz, o2));
+                } else {
+                    builder.add((T) o2);
+                }
+            }
+        } else {
+            builder.add((T) o);
+        }
+        return builder.build();
+    }
+
     private int getRotationAngle(InputStream in) throws IOException {
         try {
             ExifInterface exifInterface = new ExifInterface(in);
             String orientString = exifInterface.getAttribute(ExifInterface.TAG_ORIENTATION);
             int orientation = orientString != null ? Integer.parseInt(orientString) : ExifInterface.ORIENTATION_NORMAL;
             int rotationAngle = 0;
-            if (orientation == ExifInterface.ORIENTATION_ROTATE_90) rotationAngle = 90;
-            if (orientation == ExifInterface.ORIENTATION_ROTATE_180) rotationAngle = 180;
-            if (orientation == ExifInterface.ORIENTATION_ROTATE_270) rotationAngle = 270;
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_90)
+                rotationAngle = 90;
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_180)
+                rotationAngle = 180;
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_270)
+                rotationAngle = 270;
             return rotationAngle;
-        }catch(IOException e){
+        } catch (IOException e) {
             throw e;
         }
     }
 
-    private Bitmap createRotatedBitmap(Bitmap bm, BitmapFactory.Options bounds, int rotationAngle){
+    private Bitmap createRotatedBitmap(Bitmap bm, BitmapFactory.Options bounds, int rotationAngle) {
         Matrix matrix = new Matrix();
         matrix.setRotate(rotationAngle, (float) bm.getWidth() / 2, (float) bm.getHeight() / 2);
         return Bitmap.createBitmap(bm, 0, 0, bounds.outWidth, bounds.outHeight, matrix, true);

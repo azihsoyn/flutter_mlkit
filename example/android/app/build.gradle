@@ -24,14 +24,11 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId "com.azihsoyn.flutter.mlkitexample"
-        minSdkVersion 16
+        minSdkVersion 26
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        ndk {
-            abiFilters 'armeabi-v7a'
-        }
     }
 
     buildTypes {

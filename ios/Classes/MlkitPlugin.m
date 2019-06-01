@@ -207,7 +207,7 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                               result(ret);
                               return;
                           }];
-    } else if ([call.method hasPrefix:@"FirebaseModelManager#registerCloudModelSource"]) {
+    } else if ([call.method hasPrefix:@"FirebaseModelManager#registerRemoteModelSource"]) {
         if(call.arguments[@"source"] != [NSNull null] ){
             NSString *modeName = call.arguments[@"source"][@"modelName"];
             BOOL enableModelUpdates = call.arguments[@"source"][@"enableModelUpdates"];
@@ -230,46 +230,55 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                 [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:requireWifi
                                                 allowsBackgroundDownloading:requireDeviceIdle];
             }
-            FIRRemoteModel *cloudModelSource =
+            FIRRemoteModel *remoteModelSource =
             [[FIRRemoteModel alloc] initWithName:modeName
                                         allowsModelUpdates:enableModelUpdates
                                          initialConditions:initialDownloadConditions
                                           updateConditions:updatesDownloadConditions];
             BOOL registrationSuccess =
-            [[FIRModelManager modelManager] registerRemoteModel:cloudModelSource];
+            [[FIRModelManager modelManager] registerRemoteModel:remoteModelSource];
         }
     } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
-        NSString *cloudModelName = call.arguments[@"cloudModelName"];
+        NSString *remoteModelName = call.arguments[@"remoteModelName"];
         // TODO local model
-        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:cloudModelName                                                                localModelName:nil];
+        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:remoteModelName                                                                localModelName:nil];
         FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
         FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
+        NSLog(@"Building input options");
         NSError *error;
-        NSNumber *inputIndex = call.arguments[@"inputOutputOptions"][@"inputIndex"];
-        NSNumber *inputDataType = call.arguments[@"inputOutputOptions"][@"inputDataType"];
-        FIRModelElementType inputType = (FIRModelElementType)[inputDataType intValue];
-        NSArray<NSNumber *> *inputDims = call.arguments[@"inputOutputOptions"][@"inputDims"];
-        [ioOptions setInputFormatForIndex:[inputIndex unsignedIntegerValue]
-                                     type:inputType
-                               dimensions:inputDims
-                                    error:&error];
-        if (error != nil) {
-            NSLog(@"Failed setInputFormatForIndex with error: %@", error.localizedDescription);
-            return;
+        NSArray<NSDictionary *> *inputOptions = call.arguments[@"inputOutputOptions"][@"inputOptions"];
+        for (int i = 0; i < [inputOptions count]; i++)
+        {
+            NSNumber *inputDataType = [inputOptions objectAtIndex:i][@"dataType"];
+            FIRModelElementType inputType = (FIRModelElementType)[inputDataType intValue];
+            NSArray<NSNumber *> *inputDims = [inputOptions objectAtIndex:i][@"dims"];
+            [ioOptions setInputFormatForIndex:i
+                                        type:inputType
+                                dimensions:inputDims
+                                        error:&error];
+            if (error != nil) {
+                NSLog(@"Failed setInputFormatForIndex with error: %@", error.localizedDescription);
+                return;
+            }
         }
-
-        NSNumber *outputIndex = call.arguments[@"inputOutputOptions"][@"outputIndex"];
-        NSNumber *outputDataType = call.arguments[@"inputOutputOptions"][@"outputDataType"];
-        FIRModelElementType outputType = (FIRModelElementType)[outputDataType intValue];
-        NSArray<NSNumber *> *outputDims = call.arguments[@"inputOutputOptions"][@"outputDims"];
-        [ioOptions setOutputFormatForIndex:[outputIndex unsignedIntegerValue]
-                                      type:outputType
-                                dimensions:outputDims
-                                     error:&error];
-        if (error != nil) {
-            NSLog(@"Failed setOutputFormatForIndex with error: %@", error.localizedDescription);
-            return;
+        
+        NSLog(@"Building output options");
+        NSArray<NSDictionary *> *outputOptions = call.arguments[@"inputOutputOptions"][@"outputOptions"];
+        for (int i = 0; i < [outputOptions count]; i++)
+        {
+            NSNumber *outputDataType = [outputOptions objectAtIndex:i][@"dataType"];
+            FIRModelElementType outputType = (FIRModelElementType)[outputDataType intValue];
+            NSArray<NSNumber *> *outputDims = [outputOptions objectAtIndex:i][@"dims"];
+            [ioOptions setOutputFormatForIndex:i
+                                         type:outputType
+                                   dimensions:outputDims
+                                        error:&error];
+            if (error != nil) {
+                NSLog(@"Failed setOutputFormatForIndex with error: %@", error.localizedDescription);
+                return;
+            }
         }
+        
         FIRModelInputs *inputs = [[FIRModelInputs alloc] init];
         FlutterStandardTypedData* typedData = call.arguments[@"inputBytes"];
         // ...
@@ -278,29 +287,33 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
             NSLog(@"Failed addInput with error: %@", error);
             return;
         }
+        NSLog(@"Running detection");
         [interpreter runWithInputs:inputs
                            options:ioOptions
                         completion:^(FIRModelOutputs * _Nullable outputs,
                                      NSError * _Nullable error) {
+                            NSLog(@"Detection run");
                             if (error != nil || outputs == nil) {
                                 NSLog(@"Failed runWithInputs with error: %@", error.localizedDescription);
                                 return;
                             }
+                            __block NSMutableArray<NSObject *> *ret =[NSMutableArray array];
+                            for (int i = 0; i < [outputOptions count]; i++)
+                            {
+                                NSObject *outputArray = [outputs outputAtIndex:i error:&error];
+                                if (error) {
+                                    NSLog(@"Failed to process detection outputs with error: %@", error.localizedDescription);
+                                    return;
+                                }
 
-                            NSArray <NSArray<NSNumber *> *>*outputArrayOfArrays = [outputs outputAtIndex:0 error:&error];
-                            if (error) {
-                                NSLog(@"Failed to process detection outputs with error: %@", error.localizedDescription);
-                                return;
+                                // Get the first output from the array of output arrays.
+                                if(!outputArray) {
+                                    NSLog(@"Failed to get the results array from output.");
+                                    return;
+                                }
+                                
+                                [ret addObject:processList(outputArray)];
                             }
-
-                            // Get the first output from the array of output arrays.
-                            if(!outputArrayOfArrays || !outputArrayOfArrays.firstObject || ![outputArrayOfArrays.firstObject isKindOfClass:[NSArray class]] || !outputArrayOfArrays.firstObject.firstObject || ![outputArrayOfArrays.firstObject.firstObject isKindOfClass:[NSNumber class]]) {
-                                NSLog(@"Failed to get the results array from output.");
-                                return;
-                            }
-
-                            NSArray<NSNumber *> *ret = outputArrayOfArrays.firstObject;
-
                             result(ret);
                             return;
                         }];
@@ -327,6 +340,24 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
     } else {
         result(FlutterMethodNotImplemented);
     }
+}
+
+NSMutableArray *processList(NSObject * o) {
+    __block NSMutableArray<NSObject *> *list =[NSMutableArray array];
+    if ([o isKindOfClass:[NSArray class]]) {
+        int length = [((NSArray *)o) count];
+        for (int i = 0; i < length; i++) {
+            NSObject *o2 = [((NSArray *)o) objectAtIndex:i];
+            if ([o2 isKindOfClass:[NSArray class]]) {
+                [list addObject:processList(o2)];
+            } else {
+                [list addObject:o2];
+            }
+        }
+    } else {
+        [list addObject:o];
+    }
+    return list;
 }
 
 NSDictionary *visionTextBlockToDictionary(FIRVisionTextBlock * visionTextBlock) {
