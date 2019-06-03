@@ -9,6 +9,7 @@ import 'custom-models.dart';
 import 'vision-text.dart';
 import 'face-detect.dart';
 import 'label-image.dart';
+
 void main() {
   runApp(MaterialApp(
     title: 'Named Routes Demo',
@@ -37,7 +38,7 @@ class StartScreen extends StatelessWidget {
           children: [
             Center(
               child: RaisedButton(
-                child: Text('Recognize text'),
+                child: Text('MLKit vision text detection'),
                 onPressed: () {
                   // Navigate to the second screen using a named route
                   Navigator.pushNamed(context, '/vision-text');
@@ -46,7 +47,7 @@ class StartScreen extends StatelessWidget {
             ),
             Center(
               child: RaisedButton(
-                child: Text('Custom model'),
+                child: Text('Object detection with custom model'),
                 onPressed: () {
                   // Navigate to the second screen using a named route
                   Navigator.pushNamed(context, '/custom-model');
@@ -55,7 +56,7 @@ class StartScreen extends StatelessWidget {
             ),
             Center(
               child: RaisedButton(
-                child: Text('Detect faces'),
+                child: Text('Face detection'),
                 onPressed: () {
                   // Navigate to the second screen using a named route
                   Navigator.pushNamed(context, '/face-detect');
