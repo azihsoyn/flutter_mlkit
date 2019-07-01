@@ -1,3 +1,7 @@
+## 0.13.1
+
+* modify android minSdkVersion (24 -> 16)
+
 ## 0.13.0
 
 * Custom models extended.
