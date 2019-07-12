@@ -89,9 +89,9 @@ class _LabelImageWidgetState extends State<LabelImageWidget> {
 
   Future<Size> _getImageSize(Image image) {
     Completer<Size> completer = Completer<Size>();
-    image.image.resolve(ImageConfiguration()).addListener(
+    image.image.resolve(ImageConfiguration()).addListener(ImageStreamListener(
         (ImageInfo info, bool _) => completer.complete(
-            Size(info.image.width.toDouble(), info.image.height.toDouble())));
+            Size(info.image.width.toDouble(), info.image.height.toDouble()))));
     return completer.future;
   }
 
