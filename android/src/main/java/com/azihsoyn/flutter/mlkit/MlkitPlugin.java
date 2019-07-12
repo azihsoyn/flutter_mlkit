@@ -309,8 +309,8 @@ public class MlkitPlugin implements MethodCallHandler {
                 Map<String, List<Map<String, Object>>> inputOutputOptionsMap = call.argument("inputOutputOptions");
 
                 List<Map<String, Object>> inputOptions = inputOutputOptionsMap.get("inputOptions");
+                int offset = 0;
                 for (int i = 0; i < inputOptions.size(); i++) {
-
                     int inputDataType = (int) inputOptions.get(i).get("dataType");
                     ArrayList<Integer> _inputDims = (ArrayList<Integer>) inputOptions.get(i).get("dims");
                     ioBuilder.setInputFormat(i, inputDataType, toArray(_inputDims));
@@ -322,10 +322,12 @@ public class MlkitPlugin implements MethodCallHandler {
                     } else if (inputDataType == FirebaseModelDataType.LONG) {
                         bytesPerChannel = 8;
                     }
-                    ByteBuffer buffer = ByteBuffer.allocateDirect(toDim(_inputDims) * bytesPerChannel);
+                    int length = toDim(_inputDims) * bytesPerChannel;
+                    ByteBuffer buffer = ByteBuffer.allocateDirect(length);
                     buffer.order(ByteOrder.nativeOrder());
                     buffer.rewind();
-                    buffer.put(data);
+                    buffer.put(data, offset, length);
+                    offset += length;
                     inputsBuilder.add(buffer);
                 }
 
