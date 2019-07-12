@@ -1,3 +1,7 @@
+## 0.13.2
+
+* fix issue on memory allocation in multiple inputs
+
 ## 0.13.1
 
 * modify android minSdkVersion (24 -> 16)
