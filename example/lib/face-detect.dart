@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mlkit/mlkit.dart';
 
-
 class FaceDetectWidget extends StatefulWidget {
   @override
   _FaceDetectWidgetState createState() => new _FaceDetectWidgetState();
@@ -43,7 +42,7 @@ class _FaceDetectWidgetState extends State<FaceDetectWidget> {
             try {
               //var file = await ImagePicker.pickImage(source: ImageSource.camera);
               var file =
-              await ImagePicker.pickImage(source: ImageSource.gallery);
+                  await ImagePicker.pickImage(source: ImageSource.gallery);
               setState(() {
                 _file = file;
               });
@@ -72,18 +71,18 @@ class _FaceDetectWidgetState extends State<FaceDetectWidget> {
         child: _file == null
             ? Text('No Image')
             : new FutureBuilder<Size>(
-          future: _getImageSize(Image.file(_file, fit: BoxFit.fitWidth)),
-          builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
-            if (snapshot.hasData) {
-              return Container(
-                  foregroundDecoration:
-                  FaceDetectDecoration(_currentLabels, snapshot.data),
-                  child: Image.file(_file, fit: BoxFit.fitWidth));
-            } else {
-              return new Text('Detecting...');
-            }
-          },
-        ),
+                future: _getImageSize(Image.file(_file, fit: BoxFit.fitWidth)),
+                builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
+                  if (snapshot.hasData) {
+                    return Container(
+                        foregroundDecoration:
+                            FaceDetectDecoration(_currentLabels, snapshot.data),
+                        child: Image.file(_file, fit: BoxFit.fitWidth));
+                  } else {
+                    return new Text('Detecting...');
+                  }
+                },
+              ),
       ),
     );
   }
@@ -91,8 +90,8 @@ class _FaceDetectWidgetState extends State<FaceDetectWidget> {
   Future<Size> _getImageSize(Image image) {
     Completer<Size> completer = new Completer<Size>();
     image.image.resolve(new ImageConfiguration()).addListener(
-            (ImageInfo info, bool _) => completer.complete(
-            Size(info.image.width.toDouble(), info.image.height.toDouble())));
+        ImageStreamListener((ImageInfo info, bool _) => completer.complete(
+            Size(info.image.width.toDouble(), info.image.height.toDouble()))));
     return completer.future;
   }
 

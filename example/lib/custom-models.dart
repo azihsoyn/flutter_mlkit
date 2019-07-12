@@ -3,10 +3,10 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:mlkit/mlkit.dart';
-import 'package:image/image.dart' as img;
-import 'package:flutter/services.dart' show rootBundle;
 
 class CustomModelWidget extends StatefulWidget {
   @override
@@ -103,12 +103,12 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
         appBar: AppBar(
           title: Text('Object Detection'),
           leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios),
-              tooltip: 'Back',
-              onPressed: () {
-                 Navigator.pop(context);
-              },
-            ),
+            icon: Icon(Icons.arrow_back_ios),
+            tooltip: 'Back',
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
         ),
         body: _buildBody(),
         floatingActionButton: FloatingActionButton(
@@ -259,9 +259,12 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
 
   Future<Size> _getImageSize(Image image) {
     Completer<Size> completer = Completer<Size>();
-    image.image.resolve(ImageConfiguration()).addListener(
-        (ImageInfo info, bool _) => completer.complete(
-            Size(info.image.width.toDouble(), info.image.height.toDouble())));
+    image.image
+        .resolve(ImageConfiguration())
+        .addListener(ImageStreamListener((ImageInfo info, _) {
+      completer.complete(
+          Size(info.image.width.toDouble(), info.image.height.toDouble()));
+    }));
     return completer.future;
   }
 
