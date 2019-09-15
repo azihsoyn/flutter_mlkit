@@ -1,3 +1,7 @@
+## 0.13.3
+
+* Migrated to AndroidX by @BugsBunnyBR
+
 ## 0.13.2
 
 * fix issue on memory allocation in multiple inputs
