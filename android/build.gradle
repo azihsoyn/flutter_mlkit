@@ -8,8 +8,8 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.2'
-        classpath 'com.google.gms:google-services:3.2.1'
+        classpath 'com.android.tools.build:gradle:3.5.0'
+        classpath 'com.google.gms:google-services:4.3.1'
     }
 }
 
@@ -27,7 +27,7 @@ android {
 
     defaultConfig {
         minSdkVersion 16
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     lintOptions {
         disable 'InvalidPackage'
@@ -41,6 +41,6 @@ android {
         implementation 'com.google.firebase:firebase-ml-vision-face-model:17.+'
         api 'com.google.firebase:firebase-ml-vision-image-label-model:17.+'
         implementation 'com.google.firebase:firebase-ml-model-interpreter:19.+'
-        api "com.android.support:exifinterface:28.0.0"
+        api "androidx.exifinterface:exifinterface:1.0.0"
     }
 }
