@@ -9,6 +9,8 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.content.res.AssetManager;
+import android.content.res.AssetFileDescriptor;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,6 +27,7 @@ import com.google.firebase.ml.common.FirebaseMLException;
 import com.google.firebase.ml.common.modeldownload.FirebaseModelDownloadConditions;
 import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
 import com.google.firebase.ml.common.modeldownload.FirebaseRemoteModel;
+import com.google.firebase.ml.common.modeldownload.FirebaseLocalModel;
 import com.google.firebase.ml.custom.FirebaseModelDataType;
 import com.google.firebase.ml.custom.FirebaseModelInputOutputOptions;
 import com.google.firebase.ml.custom.FirebaseModelInputs;
@@ -289,18 +292,33 @@ public class MlkitPlugin implements MethodCallHandler {
             }
         } else if (call.method.equals("FirebaseModelManager#registerLocalModelSource")) {
             FirebaseModelManager manager = FirebaseModelManager.getInstance();
-            // TODO: next release
+
+            if (call.argument("source") != null) {
+                Map<String, Object> sourceMap = call.argument("source");
+                String modelName = (String) sourceMap.get("modelName");
+                String assetFilePath = (String) sourceMap.get("assetFilePath");
+                FirebaseLocalModel localSource =
+                        new FirebaseLocalModel.Builder(modelName)
+                                .setAssetFilePath("flutter_assets/"+assetFilePath)
+                                .build();
+                FirebaseModelManager.getInstance().registerLocalModel(localSource);
+            }
 
         } else if (call.method.equals("FirebaseModelInterpreter#run")) {
             FirebaseModelInterpreter mInterpreter;
             String remoteModelName = call.argument("remoteModelName");
+            String localModelName = call.argument("localModelName");
             try {
 
-                FirebaseModelOptions modelOptions = new FirebaseModelOptions.Builder()
-                        .setRemoteModelName(remoteModelName)
-                        // TODO: local model
-                        // .setLocalModelName("my_local_model")
-                        .build();
+                FirebaseModelOptions.Builder builder = new FirebaseModelOptions.Builder();
+
+                if (remoteModelName != null) {
+                    builder.setRemoteModelName(remoteModelName);
+                }
+                if (localModelName != null) {
+                    builder.setLocalModelName(localModelName);
+                }
+                FirebaseModelOptions modelOptions = builder.build();
                 FirebaseModelInputOutputOptions.Builder ioBuilder = new FirebaseModelInputOutputOptions.Builder();
                 FirebaseModelInputs.Builder inputsBuilder = new FirebaseModelInputs.Builder();
 

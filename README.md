@@ -27,7 +27,8 @@ The flutter team now has the [firebase_ml_vision](https://pub.dartlang.org/packa
 | Translation                    | yet     | yet |
 | Smart Reply                    | yet     | yet |
 | AutoML model inference         | yet     | yet |
-| Custom model                   | ✅      | ✅  |
+| Custom model(on device)        | ✅      | ✅  |
+| Custom model(cloud)            | ✅      | ✅  |
 
 [What features are available on device or in the cloud?](https://firebase.google.com/docs/ml-kit/)
 

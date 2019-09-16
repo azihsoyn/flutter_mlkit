@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:mlkit/mlkit.dart';
@@ -34,9 +35,10 @@ class ObjectDetectionLabel {
 
 class _CustomModelWidgetState extends State<CustomModelWidget> {
   List<String> _models = ["mobilenet_quant", "mobilenet_float", "coco"];
+  List<String> _localModels = ["mobilenet_quant"];
 
   File _file;
-  int _currentModel = 2;
+  int _currentModel = 0;
   List<ObjectDetectionLabel> _currentLabels = <ObjectDetectionLabel>[];
 
   FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.instance;
@@ -44,7 +46,7 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
   Map<String, List<String>> labels = {
     "mobilenet_quant": null,
     "mobilenet_float": null,
-    "coco": null
+    "coco": null,
   };
 
   Map<String, FirebaseModelInputOutputOptions> _ioOptions = {
@@ -83,6 +85,10 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
               FirebaseModelDownloadConditions(requireWifi: true),
           updatesDownloadConditions:
               FirebaseModelDownloadConditions(requireWifi: true)));
+    });
+    _localModels.forEach((model) {
+      manager.registerLocalModelSource(FirebaseLocalModelSource(
+          modelName: model, assetFilePath: "assets/" + model + ".tflite"));
     });
 
     rootBundle.loadString('assets/labels_mobilenet.txt').then((string) {
@@ -129,12 +135,18 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
 
                 if (options.inputOptions[0].dataType ==
                     FirebaseModelDataType.BYTE) {
-                  results = await interpreter.run(_models[_currentModel],
-                      options, (imageToByteListInt(_file, dim)));
+                  var bytes = await imageToByteListInt(_file, dim);
+                  results = await interpreter.run(
+                      localModelName: _localModels[_currentModel],
+                      inputOutputOptions: options,
+                      inputBytes: bytes);
                   factor = 2.55;
                 } else {
-                  results = await interpreter.run(_models[_currentModel],
-                      options, (imageToByteListFloat(_file, dim)));
+                  var bytes = await imageToByteListFloat(_file, dim);
+                  results = await interpreter.run(
+                      localModelName: _localModels[_currentModel],
+                      inputOutputOptions: options,
+                      inputBytes: bytes);
                 }
 
                 print(results);
@@ -189,11 +201,12 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
     );
   }
 
-  Uint8List imageToByteListInt(File file, int _inputSize) {
-    var bytes = file.readAsBytesSync();
+  Future<Uint8List> imageToByteListInt(File file, int _inputSize) async {
+    File compressedFile = await FlutterNativeImage.compressImage(file.path,
+        quality: 80, targetWidth: _inputSize, targetHeight: _inputSize);
+    var bytes = compressedFile.readAsBytesSync();
     var decoder = img.findDecoderForData(bytes);
     img.Image image = decoder.decodeImage(bytes);
-    image = img.copyResize(image, width: _inputSize, height: _inputSize);
     var convertedBytes = new Uint8List(1 * _inputSize * _inputSize * 3);
     var buffer = new ByteData.view(convertedBytes.buffer);
     int pixelIndex = 0;
@@ -211,12 +224,12 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
     return convertedBytes;
   }
 
-  Uint8List imageToByteListFloat(File file, int _inputSize) {
-    var bytes = file.readAsBytesSync();
+  Future<Uint8List> imageToByteListFloat(File file, int _inputSize) async {
+    File compressedFile = await FlutterNativeImage.compressImage(file.path,
+        quality: 80, targetWidth: _inputSize, targetHeight: _inputSize);
+    var bytes = compressedFile.readAsBytesSync();
     var decoder = img.findDecoderForData(bytes);
     img.Image image = decoder.decodeImage(bytes);
-    image = img.copyResize(image, width: _inputSize, height: _inputSize);
-    //return image.getBytes(format: img.Format.rgb);
     var convertedBytes = Float32List(1 * _inputSize * _inputSize * 3);
     var buffer = Float32List.view(convertedBytes.buffer);
     int pixelIndex = 0;

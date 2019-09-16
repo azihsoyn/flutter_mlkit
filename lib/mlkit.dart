@@ -251,13 +251,18 @@ class FirebaseModelInterpreter {
 
   FirebaseModelInterpreter._() {}
 
-  Future<List<dynamic>> run(String remoteModelName,
-      FirebaseModelInputOutputOptions options, Uint8List inputBytes) async {
+  Future<List<dynamic>> run(
+      {String remoteModelName,
+      String localModelName,
+      FirebaseModelInputOutputOptions inputOutputOptions,
+      Uint8List inputBytes}) async {
+    assert(remoteModelName != null || localModelName != null);
     try {
       dynamic results =
           await _channel.invokeMethod("FirebaseModelInterpreter#run", {
         'remoteModelName': remoteModelName,
-        'inputOutputOptions': options.asDictionary(),
+        'localModelName': localModelName,
+        'inputOutputOptions': inputOutputOptions.asDictionary(),
         'inputBytes': inputBytes
       });
       return results;
@@ -321,6 +326,9 @@ class FirebaseModelDataType {
 
 // android
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelManager
+// If you specify both a local and remote model,
+// ML Kit will use the remote model if it is available,
+// and fall back to the locally-stored model if the remote model isn't available.
 class FirebaseModelManager {
   //final FirebaseLocalModelSource localModelSource;
   //final FirebaseRemoteModelSource RemoteModelSource;
@@ -344,11 +352,12 @@ class FirebaseModelManager {
     return null;
   }
 
-  Future<void> registerLocalModelSource(String filepath) async {
+  Future<void> registerLocalModelSource(
+      FirebaseLocalModelSource localSource) async {
     try {
       await _channel.invokeMethod(
           "FirebaseModelManager#registerLocalModelSource",
-          {'source': FirebaseLocalModelSource().asDictionary()});
+          {'source': localSource.asDictionary()});
     } catch (e) {
       print(
           "Error on FirebaseModelManager#registerLocalModelSource : ${e.toString()}");
@@ -359,23 +368,21 @@ class FirebaseModelManager {
 
 // android
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/model/FirebaseLocalModelSource
+// Sets a local model name to FirebaseModelOptions.
+// Note local model has a lower priority than the cloud model, if specified.
+// It will only be used if there is no FirebaseRemoteModel or the download of FirebaseRemoteModel fails.
+// via https://firebase.google.com/docs/reference/android/com/google/firebase/ml/custom/FirebaseModelOptions.Builder.html
 class FirebaseLocalModelSource {
   final String modelName;
-  final String filePath;
   final String assetFilePath;
 
   FirebaseLocalModelSource({
     @required this.modelName,
-    @required this.filePath,
     @required this.assetFilePath,
   });
 
   Map<String, dynamic> asDictionary() {
-    return {
-      "modelName": modelName,
-      "filePath": filePath,
-      "assetFilePath": assetFilePath
-    };
+    return {"modelName": modelName, "assetFilePath": assetFilePath};
   }
 }
 
