@@ -34,9 +34,10 @@ class ObjectDetectionLabel {
 
 class _CustomModelWidgetState extends State<CustomModelWidget> {
   List<String> _models = ["mobilenet_quant", "mobilenet_float", "coco"];
+  List<String> _localModels = ["mobilenet_quant"];
 
   File _file;
-  int _currentModel = 2;
+  int _currentModel = 0;
   List<ObjectDetectionLabel> _currentLabels = <ObjectDetectionLabel>[];
 
   FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.instance;
@@ -44,7 +45,7 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
   Map<String, List<String>> labels = {
     "mobilenet_quant": null,
     "mobilenet_float": null,
-    "coco": null
+    "coco": null,
   };
 
   Map<String, FirebaseModelInputOutputOptions> _ioOptions = {
@@ -83,6 +84,10 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
               FirebaseModelDownloadConditions(requireWifi: true),
           updatesDownloadConditions:
               FirebaseModelDownloadConditions(requireWifi: true)));
+    });
+    _localModels.forEach((model) {
+      manager.registerLocalModelSource(FirebaseLocalModelSource(
+          modelName: model, assetFilePath: "assets/" + model + ".tflite"));
     });
 
     rootBundle.loadString('assets/labels_mobilenet.txt').then((string) {
@@ -129,12 +134,18 @@ class _CustomModelWidgetState extends State<CustomModelWidget> {
 
                 if (options.inputOptions[0].dataType ==
                     FirebaseModelDataType.BYTE) {
-                  results = await interpreter.run(_models[_currentModel],
-                      options, (imageToByteListInt(_file, dim)));
+                  results = await interpreter.run(
+                      remoteModelName: _models[_currentModel],
+                      localModelName: _localModels[_currentModel],
+                      inputOutputOptions: options,
+                      inputBytes: (imageToByteListInt(_file, dim)));
                   factor = 2.55;
                 } else {
-                  results = await interpreter.run(_models[_currentModel],
-                      options, (imageToByteListFloat(_file, dim)));
+                  results = await interpreter.run(
+                      remoteModelName: _models[_currentModel],
+                      localModelName: _localModels[_currentModel],
+                      inputOutputOptions: options,
+                      inputBytes: (imageToByteListFloat(_file, dim)));
                 }
 
                 print(results);
