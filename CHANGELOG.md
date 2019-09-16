@@ -1,3 +1,10 @@
+## 0.14.0
+
+* Support Local Custom model.
+  This includes **Breaking change**.
+  See detail
+  https://github.com/azihsoyn/flutter_mlkit/blob/60fc24fc0e26bf0cbe2b74986e9dc28247df6804/lib/mlkit.dart#L255-L259
+
 ## 0.13.3
 
 * Migrated to AndroidX by @BugsBunnyBR

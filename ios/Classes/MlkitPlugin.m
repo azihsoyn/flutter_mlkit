@@ -238,10 +238,27 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
             BOOL registrationSuccess =
             [[FIRModelManager modelManager] registerRemoteModel:remoteModelSource];
         }
+    } else if ([call.method hasPrefix:@"FirebaseModelManager#registerLocalModelSource"]) {
+        if(call.arguments[@"source"] != [NSNull null] ){
+            NSString *modeName = call.arguments[@"source"][@"modelName"];
+            NSString *assetFilePath = call.arguments[@"source"][@"assetFilePath"];
+            NSString *fullpath = [@"Frameworks/App.framework/flutter_assets/" stringByAppendingString:assetFilePath];
+            NSString *path = [[NSBundle mainBundle] pathForResource:fullpath ofType:nil];
+            FIRLocalModel *localModel = [[FIRLocalModel alloc] initWithName:modeName
+                                                                       path:path];
+            BOOL registrationSuccess =
+            [[FIRModelManager modelManager] registerLocalModel:localModel];
+        }
     } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
-        NSString *remoteModelName = call.arguments[@"remoteModelName"];
-        // TODO local model
-        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:remoteModelName                                                                localModelName:nil];
+        NSString *remoteModelName = nil;
+        if (call.arguments[@"remoteModelName"] != [NSNull null]) {
+            remoteModelName = call.arguments[@"remoteModelName"];
+        }
+        NSString *localModelName = nil;
+        if (call.arguments[@"localModelName"] != [NSNull null]) {
+            localModelName = call.arguments[@"localModelName"];
+        }
+        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:remoteModelName                                                                localModelName:localModelName];
         FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
         FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
         NSLog(@"Building input options");
