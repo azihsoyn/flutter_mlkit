@@ -1,3 +1,7 @@
+## 0.14.1
+
+* Null validation when not found any data by @Bwolfs2
+
 ## 0.14.0
 
 * Support Local Custom model.
