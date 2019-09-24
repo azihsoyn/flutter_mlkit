@@ -79,7 +79,7 @@ class FirebaseVisionTextDetector {
     List<dynamic> texts = await _channel.invokeMethod(
         "FirebaseVisionTextDetector#detectFromBinary", {'binary': binary});
     List<VisionText> ret = [];
-    texts.forEach((dynamic item) {
+    texts?.forEach((dynamic item) {
       final VisionTextBlock text = new VisionTextBlock._(item);
       ret.add(text);
     });
@@ -90,7 +90,7 @@ class FirebaseVisionTextDetector {
     List<dynamic> texts = await _channel.invokeMethod(
         "FirebaseVisionTextDetector#detectFromPath", {'filepath': filepath});
     List<VisionText> ret = [];
-    texts.forEach((dynamic item) {
+    texts?.forEach((dynamic item) {
       final VisionTextBlock text = new VisionTextBlock._(item);
       ret.add(text);
     });
@@ -112,7 +112,7 @@ class FirebaseVisionBarcodeDetector {
       List<dynamic> barcodes = await _channel.invokeMethod(
           "FirebaseVisionBarcodeDetector#detectFromBinary", {'binary': binary});
       List<VisionBarcode> ret = [];
-      barcodes.forEach((dynamic item) {
+      barcodes?.forEach((dynamic item) {
         final VisionBarcode barcode = new VisionBarcode._(item);
         ret.add(barcode);
       });
@@ -130,7 +130,7 @@ class FirebaseVisionBarcodeDetector {
           "FirebaseVisionBarcodeDetector#detectFromPath",
           {'filepath': filepath});
       List<VisionBarcode> ret = [];
-      barcodes.forEach((dynamic item) {
+      barcodes?.forEach((dynamic item) {
         final VisionBarcode barcode = new VisionBarcode._(item);
         ret.add(barcode);
       });
@@ -161,7 +161,7 @@ class FirebaseVisionFaceDetector {
         'option': option?.asDictionary(),
       });
       List<VisionFace> ret = [];
-      faces.forEach((dynamic item) {
+      faces?.forEach((dynamic item) {
         print("item : ${item}");
         final VisionFace face = new VisionFace._(item);
         ret.add(face);
@@ -183,7 +183,7 @@ class FirebaseVisionFaceDetector {
         'option': option?.asDictionary(),
       });
       List<VisionFace> ret = [];
-      faces.forEach((dynamic item) {
+      faces?.forEach((dynamic item) {
         print("item : ${item}");
         final VisionFace face = new VisionFace._(item);
         ret.add(face);
@@ -211,7 +211,7 @@ class FirebaseVisionLabelDetector {
       List<dynamic> labels = await _channel.invokeMethod(
           "FirebaseVisionLabelDetector#detectFromBinary", {'binary': binary});
       List<VisionLabel> ret = [];
-      labels.forEach((dynamic item) {
+      labels?.forEach((dynamic item) {
         print("item : ${item}");
         final VisionLabel label = new VisionLabel._(item);
         ret.add(label);
@@ -229,7 +229,7 @@ class FirebaseVisionLabelDetector {
       List<dynamic> labels = await _channel.invokeMethod(
           "FirebaseVisionLabelDetector#detectFromPath", {'filepath': filepath});
       List<VisionLabel> ret = [];
-      labels.forEach((dynamic item) {
+      labels?.forEach((dynamic item) {
         print("item : ${item}");
         final VisionLabel label = new VisionLabel._(item);
         ret.add(label);
