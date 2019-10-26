@@ -1,3 +1,7 @@
+## 0.15.0
+
+* Fix iOS SDK Breaking change. reported by @arrrrny
+
 ## 0.14.1
 
 * Null validation when not found any data by @Bwolfs2
