@@ -22,6 +22,8 @@
                         @10:FIRFaceLandmarkTypeRightEye,
                         @11:FIRFaceLandmarkTypeMouthRight,
                         };
+    localCustomModelMap = [NSMutableDictionary dictionary];
+    remoteCustomModelMap = [NSMutableDictionary dictionary];
 }
 
 FIRVisionTextRecognizer *textDetector;
@@ -32,6 +34,8 @@ FIRVisionImageLabeler *labelDetector;
 // android
 //   https://firebase.google.com/docs/reference/android/com/google/firebase/ml/vision/face/FirebaseVisionFaceLandmark#BOTTOM_MOUTH
 NSDictionary *landmarkTypeMap;
+NSMutableDictionary *localCustomModelMap;
+NSMutableDictionary *remoteCustomModelMap;
 
 - (instancetype)init {
     self = [super init];
@@ -230,13 +234,12 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
                 [[FIRModelDownloadConditions alloc] initWithAllowsCellularAccess:requireWifi
                                                 allowsBackgroundDownloading:requireDeviceIdle];
             }
-            FIRRemoteModel *remoteModelSource =
-            [[FIRRemoteModel alloc] initWithName:modeName
-                                        allowsModelUpdates:enableModelUpdates
-                                         initialConditions:initialDownloadConditions
-                                          updateConditions:updatesDownloadConditions];
-            BOOL registrationSuccess =
-            [[FIRModelManager modelManager] registerRemoteModel:remoteModelSource];
+            FIRCustomRemoteModel *remoteModelSource =
+            [[FIRCustomRemoteModel alloc] initWithName:modeName];
+            NSProgress *downloadProgress =
+            [[FIRModelManager modelManager] downloadModel:remoteModelSource
+                                                    conditions:initialDownloadConditions];
+            [remoteCustomModelMap setObject:remoteModelSource forKey:modeName];
         }
     } else if ([call.method hasPrefix:@"FirebaseModelManager#registerLocalModelSource"]) {
         if(call.arguments[@"source"] != [NSNull null] ){
@@ -244,22 +247,38 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
             NSString *assetFilePath = call.arguments[@"source"][@"assetFilePath"];
             NSString *fullpath = [@"Frameworks/App.framework/flutter_assets/" stringByAppendingString:assetFilePath];
             NSString *path = [[NSBundle mainBundle] pathForResource:fullpath ofType:nil];
-            FIRLocalModel *localModel = [[FIRLocalModel alloc] initWithName:modeName
-                                                                       path:path];
-            BOOL registrationSuccess =
-            [[FIRModelManager modelManager] registerLocalModel:localModel];
+            FIRCustomLocalModel *localModel = [[FIRCustomLocalModel alloc] initWithModelPath:path];
+            [remoteCustomModelMap setObject:localModel forKey:modeName];
         }
     } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
         NSString *remoteModelName = nil;
+        FIRCustomRemoteModel *remoteModel = nil;
         if (call.arguments[@"remoteModelName"] != [NSNull null]) {
             remoteModelName = call.arguments[@"remoteModelName"];
+            remoteModel = [remoteCustomModelMap objectForKey:remoteModelName];
         }
         NSString *localModelName = nil;
+        FIRCustomLocalModel *localModel = nil;
         if (call.arguments[@"localModelName"] != [NSNull null]) {
             localModelName = call.arguments[@"localModelName"];
+            localModel = [localCustomModelMap objectForKey:localModelName];
         }
-        FIRModelOptions *options = [[FIRModelOptions alloc] initWithRemoteModelName:remoteModelName                                                                localModelName:localModelName];
-        FIRModelInterpreter *interpreter = [FIRModelInterpreter modelInterpreterWithOptions:options];
+
+        FIRModelInterpreter *interpreter;
+        if(remoteModel != nil && localModel != nil){
+            if ([[FIRModelManager modelManager] isModelDownloaded:remoteModel]) {
+              interpreter = [FIRModelInterpreter modelInterpreterForRemoteModel:remoteModel];
+            } else {
+              interpreter = [FIRModelInterpreter modelInterpreterForLocalModel:localModel];
+            }
+        }else if (remoteModel != nil && localModel == nil) {
+            // remote only
+            interpreter = [FIRModelInterpreter modelInterpreterForRemoteModel:remoteModel];
+        }else if (remoteModel == nil && localModel != nil) {
+            // local only
+            interpreter = [FIRModelInterpreter modelInterpreterForLocalModel:localModel];
+            
+        }
         FIRModelInputOutputOptions *ioOptions = [[FIRModelInputOutputOptions alloc] init];
         NSLog(@"Building input options");
         NSError *error;
