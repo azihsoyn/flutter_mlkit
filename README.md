@@ -71,7 +71,7 @@ var currentLabels = await detector.detectFromBinary(_file?.readAsBytesSync());
 
 #### custom model interpreter
 
-[native sample code](https://github.com/googlecodelabs/mlkit-android/blob/master/custom-model/starter/app/src/main/java/com/google/firebase/codelab/mlkit_custommodel/MainActivity.kt)
+[native sample code](https://github.com/googlecodelabs/mlkit-android/blob/master/custom-model/final/app/src/main/java/com/google/firebase/codelab/mlkit_custommodel/MainActivity.kt)
 
 ```dart
 import 'package:mlkit/mlkit.dart';
