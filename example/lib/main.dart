@@ -6,9 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mlkit/mlkit.dart';
 
 import 'custom-models.dart';
-import 'vision-text.dart';
-import 'face-detect.dart';
-import 'label-image.dart';
+
 
 void main() {
   runApp(MaterialApp(
@@ -18,10 +16,7 @@ void main() {
     initialRoute: '/',
     routes: {
       '/': (context) => StartScreen(),
-      '/vision-text': (context) => VisionTextWidget(),
       '/custom-model': (context) => CustomModelWidget(),
-      '/face-detect': (context) => FaceDetectWidget(),
-      '/label-image': (context) => LabelImageWidget(),
     },
   ));
 }

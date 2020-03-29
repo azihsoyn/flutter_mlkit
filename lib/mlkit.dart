@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 
+/*
 class VisionText {
   final Map<dynamic, dynamic> _data;
 
@@ -242,6 +243,7 @@ class FirebaseVisionLabelDetector {
     return null;
   }
 }
+*/
 
 class FirebaseModelInterpreter {
   static const MethodChannel _channel =
@@ -433,6 +435,7 @@ class FirebaseModelDownloadConditions {
   }
 }
 
+/*
 // ios
 //   https://firebase.google.com/docs/reference/ios/firebasemlvision/api/reference/Classes/FIRVisionFaceDetectorOptions
 class VisionFaceDetectorOptions {
@@ -1020,3 +1023,4 @@ class NaturalLanguageDetector {
     return await _channel.invokeMethod('getLanguage', {'text': text}) as String;
   }
 }
+*/
