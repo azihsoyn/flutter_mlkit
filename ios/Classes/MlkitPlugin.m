@@ -248,7 +248,7 @@ UIImage* imageFromImageSourceWithData(NSData *data) {
             NSString *fullpath = [@"Frameworks/App.framework/flutter_assets/" stringByAppendingString:assetFilePath];
             NSString *path = [[NSBundle mainBundle] pathForResource:fullpath ofType:nil];
             FIRCustomLocalModel *localModel = [[FIRCustomLocalModel alloc] initWithModelPath:path];
-            [remoteCustomModelMap setObject:localModel forKey:modeName];
+            [localCustomModelMap setObject:localModel forKey:modeName];
         }
     } else if ([call.method hasPrefix:@"FirebaseModelInterpreter#run"]) {
         NSString *remoteModelName = nil;

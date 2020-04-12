@@ -51,7 +51,6 @@ To integrate your plugin into the iOS part of your app, follow these steps:
 
 1. Using the [Firebase Console](https://console.firebase.google.com/) add an iOS app to your project: Follow the assistant, download the generated `GoogleService-Info.plist` file, open `ios/Runner.xcworkspace` with Xcode, and within Xcode place the file inside `ios/Runner`. **Don't** follow the steps named "Add Firebase SDK" and "Add initialization code" in the Firebase assistant.
 
-1. Remove the `use_frameworks!` line from `ios/Podfile` (workaround for [flutter/flutter#9694](https://github.com/flutter/flutter/issues/9694)).
 
 ### Dart/Flutter Integration
 
@@ -79,22 +78,29 @@ import 'package:image/image.dart' as img;
 
 FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.instance;
 FirebaseModelManager manager = FirebaseModelManager.instance;
-manager.registerCloudModelSource(
-        FirebaseCloudModelSource(modelName: "mobilenet_v1_224_quant"));
+
+//Register Cloud Model
+manager.registerRemoteModelSource(
+        FirebaseRemoteModelSource(modelName: "mobilenet_v1_224_quant"));
+
+//Register Local Backup
+manager.registerLocalModelSource(FirebaseLocalModelSource(modelName: 'mobilenet_v1_224_quant',  assetFilePath: 'ml/mobilenet_v1_224_quant.tflite');
+
 
 var imageBytes = (await rootBundle.load("assets/mountain.jpg")).buffer;
 img.Image image = img.decodeJpg(imageBytes.asUint8List());
 image = img.copyResize(image, 224, 224);
+
+//The app will download the remote model. While the remote model is being downloaded, it will use the local model.
 var results = await interpreter.run(
-                    "mobilenet_v1_224_quant",
-                    FirebaseModelInputOutputOptions(
-                        0,
-                        FirebaseModelDataType.BYTE,
-                        [1, 224, 224, 3],
-                        0,
-                        FirebaseModelDataType.BYTE,
-                        [1, 1001]),
-                    imageToByteList(image));
+        remoteModelName: "mobilenet_v1_224_quant",
+        localModelName: "mobilenet_v1_224_quant",
+        inputOutputOptions: FirebaseModelInputOutputOptions([
+          FirebaseModelIOOption(FirebaseModelDataType.FLOAT32, [1, 224, 224, 3])
+        ], [
+          FirebaseModelIOOption(FirebaseModelDataType.FLOAT32, [1, 1001])
+        ]),
+        inputBytes: imageToByteList(image));
 
 // int model
 Uint8List imageToByteList(img.Image image) {
