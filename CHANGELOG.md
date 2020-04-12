@@ -1,3 +1,8 @@
+## 0.15.1
+
+* Fixing the bug that broke the local models + Updated documentation. Contributed by @indigothm
+* Fix link in README.md. Contributed by @Ademking
+
 ## 0.15.0
 
 * Fix iOS SDK Breaking change. reported by @arrrrny
