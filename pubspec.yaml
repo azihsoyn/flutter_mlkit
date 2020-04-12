@@ -1,6 +1,6 @@
 name: mlkit
 description: A Flutter plugin to use the Firebase ML Kit.
-version: 0.15.0
+version: 0.15.1
 author: azihsoyn <azihsoyn@gmail.com>
 homepage: https://github.com/azihsoyn/flutter_mlkit
 
